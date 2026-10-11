@@ -1,12 +1,13 @@
-# File dokumentasi / markdown
+# Documentation / Markdown
 *.md
+!README.md
 
-# File testing & script percobaan
+# Test files & experimental scripts
 test*
 test_*
 *.js
 
-# File gambar sample / input / output
+# Image samples & temporary folders
 *.jpg
 *.jpeg
 *.png
@@ -24,7 +25,7 @@ venv/
 env/
 ENV/
 
-# Folder input, uploads & output pemrosesan
+# Uploads & Outputs
 uploads/
 output_crops/
 output_test/
