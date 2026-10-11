@@ -1,0 +1,15 @@
+{
+  "TP01": {
+    "method": "auto",
+    "margin_mm": 2.0,
+    "only_squares": true,
+    "only_red": false,
+    "clean_red": false,
+    "exclude_empty": false,
+    "exclude_top_pct": 0.22,
+    "group_by_box": true,
+    "size_h": 128,
+    "size_w": 128,
+    "min_area": 5000
+  }
+}

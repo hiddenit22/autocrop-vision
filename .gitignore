@@ -1,0 +1,42 @@
+# File dokumentasi / markdown
+*.md
+
+# File testing & script percobaan
+test*
+test_*
+*.js
+
+# File gambar sample / input / output
+*.jpg
+*.jpeg
+*.png
+gambar*
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Folder input, uploads & output pemrosesan
+uploads/
+output_crops/
+output_test/
+output_test_no_filter/
+output_test_skew/
+scratch/
+
+# IDE & OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+desktop.ini
+.DS_Store

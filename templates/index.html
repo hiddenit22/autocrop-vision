@@ -1,0 +1,2228 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Crop Otomatis Box Gambar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f0f1a;
+      --surface:  #1a1a2e;
+      --card:     #22223b;
+      --border:   #2e2e4a;
+      --accent:   #7c3aed;
+      --accent2:  #a855f7;
+      --green:    #22d3a6;
+      --text:     #e2e8f0;
+      --muted:    #94a3b8;
+      --danger:   #f87171;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Navbar ───────────────────────── */
+    nav {
+      background: rgba(26,26,46,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    nav .logo { font-size: 1.3rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--accent2), var(--green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    nav span { color: var(--muted); font-size: .85rem; }
+
+    /* ── Layout ───────────────────────── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 20px; }
+
+    .hero { text-align: center; padding: 48px 0 36px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 700; line-height: 1.2;
+      background: linear-gradient(135deg, #c4b5fd, #7c3aed, #22d3a6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { color: var(--muted); margin-top: 12px; font-size: 1rem; }
+
+    /* ── Card ─────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+    .card-title { font-size: 1rem; font-weight: 600; color: var(--accent2);
+      margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+
+    /* ── Drop Zone ────────────────────── */
+    #drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 56px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .25s;
+      position: relative;
+    }
+    #drop-zone:hover, #drop-zone.drag-over {
+      border-color: var(--accent2);
+      background: rgba(124,58,237,.07);
+    }
+    #drop-zone input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
+    }
+    #drop-zone .icon { font-size: 3rem; margin-bottom: 12px; }
+    #drop-zone p { color: var(--muted); font-size: .95rem; }
+    #drop-zone strong { color: var(--accent2); }
+    #preview-wrap { display: none; margin-top: 16px; }
+    #preview-wrap img { max-height: 220px; border-radius: 10px;
+      border: 1px solid var(--border); object-fit: contain; }
+    #file-name { color: var(--muted); font-size: .82rem; margin-top: 8px; }
+
+    /* ── Settings Grid ────────────────── */
+    .settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+    .field label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: 6px; }
+    .field select, .field input[type=number], .field input[type=text] {
+      width: 100%; padding: 9px 12px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text); font-size: .9rem; outline: none;
+      transition: border-color .2s;
+    }
+    .field select:focus, .field input:focus, .field input[type=text]:focus { border-color: var(--accent2); }
+
+    .toggle-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+    .toggle-row label { color: var(--muted); font-size: .88rem; }
+    input[type=checkbox] { accent-color: var(--accent2); width: 16px; height: 16px; cursor: pointer; }
+
+    /* ── Button ───────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 28px; border-radius: 10px; border: none;
+      font-size: .95rem; font-weight: 600; cursor: pointer;
+      transition: all .2s; text-decoration: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white; box-shadow: 0 4px 20px rgba(124,58,237,.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(124,58,237,.5); }
+    .btn-primary:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+    .btn-outline {
+      background: transparent; color: var(--green);
+      border: 1px solid var(--green);
+    }
+    .btn-outline:hover { background: rgba(34,211,166,.1); }
+    .btn-sm { padding: 7px 16px; font-size: .82rem; border-radius: 8px; }
+
+    .action-row { display: flex; gap: 12px; align-items: center; margin-top: 20px; flex-wrap: wrap; }
+
+    /* ── Progress Bar ─────────────────── */
+    #progress-wrap { display: none; margin-top: 18px; }
+    .progress-bar-bg { background: var(--surface); border-radius: 99px; height: 8px; overflow: hidden; }
+    .progress-bar-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      border-radius: 99px;
+      transition: width .3s;
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer {
+      0%   { filter: brightness(1); }
+      50%  { filter: brightness(1.3); }
+      100% { filter: brightness(1); }
+    }
+    #progress-label { color: var(--muted); font-size: .82rem; margin-top: 6px; }
+
+    /* ── Alert ────────────────────────── */
+    #alert-box { display: none; padding: 14px 18px; border-radius: 10px;
+      margin-top: 16px; font-size: .9rem; }
+    .alert-error { background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.4);
+      color: var(--danger); }
+    .alert-success { background: rgba(34,211,166,.1); border: 1px solid rgba(34,211,166,.3);
+      color: var(--green); }
+
+    /* ── Stats ────────────────────────── */
+    #stats-row { display: none; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+    .stat-chip {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 18px;
+      font-size: .88rem; color: var(--muted);
+    }
+    .stat-chip strong { color: var(--accent2); font-size: 1.1rem; display: block; }
+
+    /* ── Debug Image ──────────────────── */
+    #debug-wrap { display: none; margin-bottom: 20px; }
+    #debug-wrap img { width: 100%; border-radius: 10px;
+      border: 1px solid var(--border); max-height: 480px; object-fit: contain; }
+    #debug-wrap p { color: var(--muted); font-size: .8rem; margin-top: 6px; text-align: center; }
+
+    /* ── Result Grid ──────────────────── */
+    #result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 10px;
+    }
+    .cell-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; text-align: center;
+      transition: border-color .2s, transform .2s;
+      cursor: zoom-in;
+    }
+    .cell-card:hover { border-color: var(--accent2); transform: scale(1.04); }
+    .cell-card img { width: 100%; aspect-ratio: 1; object-fit: contain;
+      background: #fff; padding: 4px; }
+    .cell-card p { font-size: .65rem; color: var(--muted); padding: 4px 6px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Lightbox ─────────────────────── */
+    #lightbox {
+      display: none; position: fixed; inset: 0; z-index: 999;
+      background: rgba(0,0,0,.85); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+    }
+    #lightbox.active { display: flex; }
+    #lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 12px; border: 2px solid var(--border); }
+    #lightbox-close {
+      position: absolute; top: 20px; right: 24px;
+      font-size: 2rem; color: var(--muted); cursor: pointer; background: none; border: none;
+    }
+
+    /* ── Batch Tabs ───────────────────── */
+    .batch-tabs-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 2px 8px 2px;
+      scrollbar-width: thin;
+    }
+    .batch-tab-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: all .2s;
+    }
+    .batch-tab-btn:hover {
+      border-color: var(--accent2);
+      color: var(--text);
+      background: rgba(124,58,237,.1);
+    }
+    .batch-tab-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-color: var(--accent2);
+      color: white;
+      box-shadow: 0 4px 16px rgba(124,58,237,.4);
+    }
+    .batch-tab-badge {
+      background: rgba(0,0,0,0.35);
+      color: var(--accent2);
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-weight: 700;
+    }
+    .batch-tab-btn.active .batch-tab-badge {
+      background: rgba(255,255,255,0.25);
+      color: white;
+    }
+
+    /* ── Footer ───────────────────────── */
+    footer { text-align: center; color: var(--muted); font-size: .78rem;
+      padding: 30px; border-top: 1px solid var(--border); margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">✂ CropBox</div>
+  <span>Auto Crop Box Gambar · Python + OpenCV</span>
+</nav>
+
+<div class="container">
+  <div class="hero">
+    <h1>Crop Otomatis Box pada Gambar</h1>
+    <p>Upload form / tabel — sistem akan mendeteksi & memotong setiap kotak secara otomatis</p>
+  </div>
+
+  <!-- Upload -->
+  <!-- Pilihan Template dihapus sesuai permintaan -->
+
+  <!-- Upload & Local Source -->
+  <div class="card">
+    <div class="card-title">📁 Sumber Gambar (Pilih Salah Satu)</div>
+    
+    <div style="margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:15px;">
+      <h5 style="margin-bottom:8px; font-size:0.95rem; font-weight:600; color:var(--accent);">Opsi 1: Dari Folder Lokal (Sangat cepat, untuk 100+ gambar)</h5>
+      <p style="font-size:0.82rem; color:var(--muted); margin-bottom:8px;">Aplikasi akan membaca langsung dari folder tanpa proses upload browser.</p>
+      <div style="display:flex; gap:10px;">
+        <input type="text" id="local-folder-input" class="field" style="flex:1; margin:0;" placeholder="Contoh: D:\Scans\Hari_Ini" value="C:\Users\.CPG\Documents\Scans\print1">
+        <button class="btn btn-primary" onclick="loadLocalFolder()">Load Folder</button>
+      </div>
+    </div>
+
+    <div>
+      <h5 style="margin-bottom:8px; font-size:0.95rem; font-weight:600; color:var(--accent);">Opsi 2: Upload File Browser</h5>
+      <div id="drop-zone">
+        <input type="file" id="file-input" accept=".jpg,.jpeg,.png,.bmp,.tiff,.webp" multiple/>
+        <div class="icon">🖼️</div>
+        <p>Drag & drop gambar ke sini, atau <strong>klik untuk memilih file</strong></p>
+        <p style="font-size:.8rem; margin-top:6px;">Maksimal disarankan 50-100 file. Jika lebih, gunakan Opsi 1.</p>
+      </div>
+    </div>
+
+    <div id="preview-wrap" style="display:none; margin-top:16px;">
+      <div id="preview-summary" style="font-weight:600; margin-bottom:10px; font-size:.9rem; color:var(--accent2);"></div>
+      
+      <!-- BATCH SELECTOR TABS FOR INPUT -->
+      <div id="input-batch-tabs-wrap" style="display:none; margin-bottom:12px; background:var(--surface); padding:10px 14px; border-radius:10px; border:1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+          <span style="font-size:0.84rem; color:var(--muted); font-weight:600;">📑 Tab Kelompok Batch (Pilih untuk melihat 50 file per batch):</span>
+          <span id="input-active-batch-info" style="font-size:0.8rem; color:var(--green); font-weight:600;"></span>
+        </div>
+        <div id="input-batch-tabs-list" class="batch-tabs-container" style="margin:0;"></div>
+      </div>
+
+      <div id="preview-list" style="display:flex; gap:8px; flex-wrap:wrap; max-height:180px; overflow-y:auto; padding:4px;"></div>
+    </div>
+  </div>
+
+  <!-- Settings Output -->
+  <div class="card">
+    <div class="card-title">⚙️ Pengaturan Output</div>
+    <div class="settings-grid">
+      <div class="field">
+        <label>Ukuran Output H × W (Pixel)</label>
+        <div style="display:flex; gap:6px;">
+          <input type="number" id="opt-size-h" value="512" min="32" max="1024" style="width:50%"/>
+          <input type="number" id="opt-size-w" value="512" min="32" max="1024" style="width:50%"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Output Resolusi (DPI)</label>
+        <input type="number" id="opt-out-dpi" value="100" min="50" max="1200" step="10"/>
+      </div>
+      <div class="field" style="grid-column: 1 / -1;">
+        <label>Folder Penyimpanan Lokal di PC Anda (Opsional)</label>
+        <input type="text" id="opt-output-dir" placeholder="Contoh: D:\Aksara\HasilCrop" value="E:\hasilcrop"
+               title="Jika diisi, hasil potong akan langsung disimpan ke folder ini di komputer Anda tanpa harus download ZIP."/>
+      </div>
+    </div>
+
+    <div id="alert-box" style="display:none; padding:12px; border-radius:8px; margin-top:15px; margin-bottom:15px; font-weight:600; text-align:center;"></div>
+
+    <div class="action-row">
+      <button class="btn btn-outline" id="btn-mark" disabled onclick="openMarkingModal()">
+        🎯 1. Tandai Area (Manual)
+      </button>
+      <button class="btn btn-primary" id="btn-crop" disabled onclick="requestCropWithConfirmation()" style="font-size:1rem; padding:10px 22px;">
+        🚀 2. Mulai Crop (Konfirmasi & ACC)
+      </button>
+      <button class="btn btn-outline" id="btn-preview-val" disabled onclick="requestCropWithConfirmation()" style="border-color:var(--accent2); color:var(--accent2); font-weight:600;">
+        🔍 Preview & ACC Kotak
+      </button>
+      <span id="progress-status" style="color:var(--muted); font-size:.85rem;"></span>
+    </div>
+
+    <div id="progress-wrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="prog-fill"></div></div>
+      <div id="progress-label">Memproses…</div>
+    </div>
+
+    <!-- TAB HASIL CROP LANGSUNG DI BAWAH TOMBOL AKSI -->
+    <div id="action-batch-tabs-wrap" style="display:none; margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+        <span style="font-size:0.88rem; color:var(--accent2); font-weight:700; display:flex; align-items:center; gap:6px;">
+          📑 Tab Hasil Crop (Pilih Batch 50 File):
+        </span>
+        <span id="action-active-batch-info" style="font-size:0.8rem; color:var(--green); font-weight:600;"></span>
+      </div>
+      <div id="action-batch-tabs-list" class="batch-tabs-container" style="margin:0;"></div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="card" id="result-card" style="display:none">
+    <div class="card-title" style="justify-content:space-between; flex-wrap:wrap; gap:10px;">
+      <span>✅ Hasil Crop</span>
+      <span id="active-tab-title-badge" style="font-size:0.8rem; background:rgba(124,58,237,0.18); color:var(--accent2); padding:4px 10px; border-radius:6px; border:1px solid var(--border);">Batch Aktif</span>
+    </div>
+
+    <!-- TAB BATCH NAVIGATION -->
+    <div id="batch-tabs-wrap" style="margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px; flex-wrap:wrap; gap:8px;">
+        <span style="font-size:0.84rem; color:var(--muted); font-weight:600;">📑 Tab Kelompok Batch (Pilih tab untuk melihat 50 file per proses):</span>
+        <span id="active-tab-desc" style="font-size:0.8rem; color:var(--green); font-weight:600;"></span>
+      </div>
+      <div id="batch-tabs-list" class="batch-tabs-container"></div>
+    </div>
+
+    <div id="stats-row" style="display:none; gap:16px; align-items:center; margin-bottom:20px; flex-wrap:wrap;">
+      <div class="stat-chip"><strong id="stat-total">0</strong>Sel Terdeteksi</div>
+      <div class="stat-chip"><strong id="stat-tab-files">0</strong>Dokumen di Tab Ini</div>
+      <div class="stat-chip"><strong id="stat-method">—</strong>Metode</div>
+      <a class="btn btn-outline btn-sm" id="btn-download" href="#" download>⬇ Download ZIP Semua Gambar</a>
+    </div>
+
+    <div id="debug-wrap" style="display:none; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+        <p style="font-weight:600; color:var(--accent2);" id="debug-section-title">🖼️ Grid Deteksi Penanda (Batch Ini)</p>
+        <span style="font-size:0.78rem; color:var(--muted);" id="debug-count-label"></span>
+      </div>
+      <div id="debug-images-list" style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center;"></div>
+      <p style="color:var(--muted); font-size: .8rem; margin-top: 10px; text-align: center;">🟢 Kotak hijau = area potong. Garis biru/orange = grid garis terdeteksi.</p>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+      <p style="font-weight:600; color:var(--green);" id="crop-section-title">📁 Hasil Potongan Sel Gambar (Batch Ini)</p>
+      <span style="font-size:0.78rem; color:var(--muted);" id="crop-count-label"></span>
+    </div>
+    <div id="result-grid"></div>
+  </div>
+</div>
+
+<footer>CropBox · Dibuat dengan Python + OpenCV + Flask</footer>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+  <button id="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="zoom"/>
+</div>
+
+<!-- Marking Modal (Sistem Asli - Berfungsi Langsung Crop Manual) -->
+<div id="marking-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.88); z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:10px;">
+  <div style="background:var(--surface); border-radius:12px; padding:16px 20px; width:98vw; max-width:1600px; height:96vh; max-height:96vh; display:flex; flex-direction:column; box-shadow:0 10px 50px rgba(0,0,0,0.8); box-sizing:border-box;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <h2 style="margin:0; font-size:1.2rem; color:var(--text);">🎯 Tandai Area (Manual ROI)</h2>
+      <button class="btn btn-outline btn-sm" onclick="closeMarkingModal()">✕ Tutup</button>
+    </div>
+    
+    <!-- Reference Image Selector -->
+    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--card); padding:6px 12px; border-radius:8px; border:1px solid var(--border); margin-bottom:8px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="btn btn-outline btn-sm" onclick="markingPrevImg()" id="btn-marking-prev">⬅ File Sebelumnya</button>
+        <span id="marking-img-name" style="font-size:0.85rem; color:var(--text); font-weight:600;">File: ...</span>
+        <button class="btn btn-outline btn-sm" onclick="markingNextImg()" id="btn-marking-next">File Berikutnya ➡</button>
+      </div>
+      <span style="color:var(--muted); font-size:0.85rem;">Total kotak: <strong id="box-count" style="color:var(--accent2);">0</strong></span>
+    </div>
+
+    <!-- Toolbar Pengaturan Kotak -->
+    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px; background:var(--card); padding:6px 12px; border-radius:8px; border:1px solid var(--border);">
+      <span style="font-size:.8rem; color:var(--muted);">Geser Semua:</span>
+      <button class="btn btn-outline btn-sm" onclick="shiftAllMarkingBoxes(0, -5)" title="Geser ke Atas">⬆</button>
+      <button class="btn btn-outline btn-sm" onclick="shiftAllMarkingBoxes(0, 5)" title="Geser ke Bawah">⬇</button>
+      <button class="btn btn-outline btn-sm" onclick="shiftAllMarkingBoxes(-5, 0)" title="Geser ke Kiri">⬅</button>
+      <button class="btn btn-outline btn-sm" onclick="shiftAllMarkingBoxes(5, 0)" title="Geser ke Kanan">➡</button>
+      
+      <span style="font-size:.8rem; color:var(--muted); margin-left:6px;">Ukuran:</span>
+      <button class="btn btn-outline btn-sm" onclick="scaleAllMarkingBoxes(1.05)">➕ Perbesar</button>
+      <button class="btn btn-outline btn-sm" onclick="scaleAllMarkingBoxes(0.95)">➖ Perkecil</button>
+      
+      <span style="font-size:.8rem; color:var(--muted); margin-left:6px;">🔍 Zoom Layar:</span>
+      <select id="marking-zoom" onchange="changeMarkingZoom(this.value)" style="background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:3px 8px; font-size:.8rem;">
+        <option value="fit" selected>📺 Lebar Penuh (1100px)</option>
+        <option value="large">🔍 Lebih Besar (1450px)</option>
+        <option value="xlarge">🔎 Super Jumbo (1800px)</option>
+        <option value="original">🎯 Resolusi Asli (1:1)</option>
+        <option value="compact">📱 Ringkas (850px)</option>
+      </select>
+
+      <button class="btn btn-outline btn-sm" onclick="createDefault3x3Marking()" style="margin-left:auto; border-color:var(--accent2); color:var(--accent2);">
+        🔲 Buat 9 Kotak Default
+      </button>
+    </div>
+
+    <!-- Canvas Scroll Container -->
+    <div style="position:relative; overflow:auto; flex:1; min-height:0; border:1px solid var(--border); border-radius:8px; background:#06060c; display:flex; justify-content:center; align-items:flex-start; padding:20px; box-sizing:border-box;">
+      <canvas id="marking-canvas" style="cursor:crosshair; display:block; margin:auto; box-shadow:0 8px 32px rgba(0,0,0,0.85);"></canvas>
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:12px; justify-content:space-between; align-items:center;">
+      <button class="btn btn-outline btn-sm" onclick="clearMarkingBoxes()">🗑️ Hapus Semua Kotak</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-outline btn-sm" onclick="closeMarkingModal()">Batal</button>
+        <button class="btn btn-primary" id="btn-marking-done" onclick="saveMarkingAndCrop()">✅ Selesai & Mulai Crop</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Adjust & Re-Crop Modal (Sesuaikan Kotak & Crop Ulang Per Gambar) -->
+<div id="adjust-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:10px;">
+  <div style="background:var(--surface); border-radius:12px; padding:16px 20px; width:98vw; max-width:1600px; height:96vh; max-height:96vh; display:flex; flex-direction:column; box-shadow:0 10px 50px rgba(0,0,0,0.8); box-sizing:border-box;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <h2 style="margin:0; font-size:1.15rem; color:var(--text); display:flex; align-items:center; gap:8px;">
+        <span>✏️ Sesuaikan Kotak:</span> <span id="adjust-file-title" style="color:var(--accent2); font-weight:700;">gambar.jpg</span>
+      </h2>
+      <button class="btn btn-outline btn-sm" onclick="closeAdjustModal()">✕ Tutup</button>
+    </div>
+    <p style="color:var(--muted); font-size:0.82rem; margin-bottom:8px;">
+      💡 Klik & geser kotak hijau untuk memindahkan posisinya. Tarik sudut kotak untuk mengubah ukuran. Scroll ke bawah/atas untuk melihat seluruh isi dokumen.
+    </p>
+
+    <!-- Toolbar Pengaturan Kotak -->
+    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px; background:var(--card); padding:6px 12px; border-radius:8px; border:1px solid var(--border);">
+      <span style="font-size:.8rem; color:var(--muted);">Geser Semua:</span>
+      <button class="btn btn-outline btn-sm" onclick="shiftAllAdjustBoxes(0, -1)" title="Geser Atas">⬆</button>
+      <button class="btn btn-outline btn-sm" onclick="shiftAllAdjustBoxes(0, 1)" title="Geser Bawah">⬇</button>
+      <button class="btn btn-outline btn-sm" onclick="shiftAllAdjustBoxes(-1, 0)" title="Geser Kiri">⬅</button>
+      <button class="btn btn-outline btn-sm" onclick="shiftAllAdjustBoxes(1, 0)" title="Geser Kanan">➡</button>
+      
+      <span style="font-size:.8rem; color:var(--muted); margin-left:6px;">Langkah:</span>
+      <select id="adjust-step" style="background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:3px 8px; font-size:.8rem;">
+        <option value="2">2px (Halus)</option>
+        <option value="5" selected>5px (Sedang)</option>
+        <option value="10">10px (Cepat)</option>
+        <option value="20">20px (Besar)</option>
+      </select>
+
+      <span style="font-size:.8rem; color:var(--muted); margin-left:6px;">Ukuran:</span>
+      <button class="btn btn-outline btn-sm" onclick="scaleAllAdjustBoxes(1.04)">➕ Perbesar</button>
+      <button class="btn btn-outline btn-sm" onclick="scaleAllAdjustBoxes(0.96)">➖ Perkecil</button>
+      
+      <span style="font-size:.8rem; color:var(--muted); margin-left:6px;">🔍 Zoom Layar:</span>
+      <select id="adjust-zoom" onchange="changeAdjustZoom(this.value)" style="background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:3px 8px; font-size:.8rem;">
+        <option value="fit" selected>📺 Lebar Penuh (1100px - Nyaman)</option>
+        <option value="large">🔍 Lebih Besar (1450px)</option>
+        <option value="xlarge">🔎 Super Jumbo (1800px)</option>
+        <option value="original">🎯 Resolusi Asli Dokumen (1:1)</option>
+        <option value="compact">📱 Ringkas (850px)</option>
+      </select>
+
+      <button class="btn btn-outline btn-sm" onclick="resetAdjustBoxes()" style="margin-left:auto;">🔄 Reset Kotak</button>
+    </div>
+
+    <!-- Canvas Scroll Container -->
+    <div style="position:relative; overflow:auto; flex:1; min-height:0; border:1px solid var(--border); border-radius:8px; background:#06060c; display:flex; justify-content:center; align-items:flex-start; padding:20px; box-sizing:border-box;">
+      <canvas id="adjust-canvas" style="cursor:crosshair; display:block; margin:auto; box-shadow:0 8px 32px rgba(0,0,0,0.85);"></canvas>
+    </div>
+
+    <!-- Action Footer -->
+    <div style="margin-top:12px; display:flex; gap:10px; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+      <button class="btn btn-outline btn-sm" onclick="applyAdjustAsGlobalManual()" style="border-color:var(--accent2); color:var(--accent2);" title="Simpan posisi kotak ini untuk digunakan pada semua gambar lainnya">
+        💾 Terapkan Kotak Ini ke Semua Gambar Lainnya
+      </button>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-outline btn-sm" onclick="closeAdjustModal()">Batal</button>
+        <button class="btn btn-primary" id="btn-adjust-recrop" onclick="submitSingleImageReCrop()">
+          🚀 Simpan & Crop Ulang Gambar Ini
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm & ACC Crop Modal (Konfirmasi & Preview Kotak Sebelum Crop) -->
+<div id="confirm-crop-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); z-index:9999; flex-direction:column; align-items:center; justify-content:center; padding:10px;">
+  <div style="background:var(--surface); border-radius:12px; padding:16px 20px; width:98vw; max-width:1600px; height:96vh; max-height:96vh; display:flex; flex-direction:column; box-shadow:0 10px 50px rgba(0,0,0,0.8); box-sizing:border-box;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <h2 style="margin:0; font-size:1.2rem; color:var(--text); display:flex; align-items:center; gap:8px;">
+        <span>👁️ Konfirmasi & ACC Posisi Kotak Sebelum Crop</span>
+      </h2>
+      <button class="btn btn-outline btn-sm" onclick="closeConfirmModal()">✕ Tutup</button>
+    </div>
+    <p style="color:var(--muted); font-size:0.82rem; margin-bottom:6px;">
+      💡 Periksa posisi 9 kotak hijau pada gambar acuan. Anda bisa <strong>menggeser kotak</strong> langsung dengan mouse atau tombol panah jika menyinggung garis tabel. Scroll layar ke bawah untuk memeriksa seluruh kotak.
+    </p>
+
+    <!-- Reference Image Switcher -->
+    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--card); padding:6px 12px; border-radius:8px; border:1px solid var(--border); margin-bottom:8px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="btn btn-outline btn-sm" id="btn-confirm-prev" onclick="confirmPrevImg()">⬅ File Sebelumnya</button>
+        <span id="confirm-img-title" style="font-size:0.85rem; color:var(--text); font-weight:600;">File: ...</span>
+        <button class="btn btn-outline btn-sm" id="btn-confirm-next" onclick="confirmNextImg()">File Berikutnya ➡</button>
+      </div>
+      <span style="color:var(--muted); font-size:0.85rem;">Jumlah Kotak: <strong id="confirm-box-count" style="color:var(--accent2);">9</strong></span>
+    </div>
+
+    <!-- Batch Quick Jumper Tabs in Confirm Modal -->
+    <div id="confirm-batch-tabs-wrap" style="margin-bottom:8px; background:var(--card); padding:6px 12px; border-radius:8px; border:1px solid var(--border); display:none;">
+      <div style="display:flex; align-items:center; gap:8px; overflow-x:auto;">
+        <span style="font-size:0.8rem; color:var(--muted); white-space:nowrap; font-weight:600;">Lompat ke Batch:</span>
+        <div id="confirm-batch-tabs-list" class="batch-tabs-container" style="margin:0; padding:0;"></div>
+      </div>
+    </div>
+
+    <!-- Toolbar Pengaturan Kotak -->
+    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px; background:var(--card); padding:6px 12px; border-radius:8px; border:1px solid var(--border);">
+      <span style="font-size:.8rem; color:var(--muted);">Geser Semua:</span>
+      <button class="btn btn-outline btn-sm" onclick="shiftAllConfirmBoxes(0, -1)" title="Geser Atas">⬆</button>
+      <button class="btn btn-outline btn-sm" onclick="shiftAllConfirmBoxes(0, 1)" title="Geser Bawah">⬇</button>
+      <button class="btn btn-outline btn-sm" onclick="shiftAllConfirmBoxes(-1, 0)" title="Geser Kiri">⬅</button>
+      <button class="btn btn-outline btn-sm" onclick="shiftAllConfirmBoxes(1, 0)" title="Geser Kanan">➡</button>
+      
+      <span style="font-size:.8rem; color:var(--muted); margin-left:6px;">Langkah:</span>
+      <select id="confirm-step" style="background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:3px 8px; font-size:.8rem;">
+        <option value="2">2px (Halus)</option>
+        <option value="5" selected>5px (Sedang)</option>
+        <option value="10">10px (Cepat)</option>
+        <option value="20">20px (Besar)</option>
+      </select>
+
+      <span style="font-size:.8rem; color:var(--muted); margin-left:6px;">Ukuran:</span>
+      <button class="btn btn-outline btn-sm" onclick="scaleAllConfirmBoxes(1.04)">➕ Perbesar</button>
+      <button class="btn btn-outline btn-sm" onclick="scaleAllConfirmBoxes(0.96)">➖ Perkecil</button>
+      
+      <span style="font-size:.8rem; color:var(--muted); margin-left:6px;">🔍 Zoom Layar:</span>
+      <select id="confirm-zoom" onchange="changeConfirmZoom(this.value)" style="background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:3px 8px; font-size:.8rem;">
+        <option value="fit" selected>📺 Lebar Penuh (1100px - Nyaman)</option>
+        <option value="large">🔍 Lebih Besar (1450px)</option>
+        <option value="xlarge">🔎 Super Jumbo (1800px)</option>
+        <option value="original">🎯 Resolusi Asli Dokumen (1:1)</option>
+        <option value="compact">📱 Ringkas (850px)</option>
+      </select>
+
+      <button class="btn btn-outline btn-sm" onclick="createDefault3x3Confirm()" style="margin-left:auto; border-color:var(--accent2); color:var(--accent2);">🔲 9 Kotak Default</button>
+      <button class="btn btn-outline btn-sm" onclick="resetConfirmBoxes()">🔄 Reset</button>
+    </div>
+
+    <!-- Canvas Scroll Container -->
+    <div style="position:relative; overflow:auto; flex:1; min-height:0; border:1px solid var(--border); border-radius:8px; background:#06060c; display:flex; justify-content:center; align-items:flex-start; padding:20px; box-sizing:border-box;">
+      <canvas id="confirm-canvas" style="cursor:crosshair; display:block; margin:auto; box-shadow:0 8px 32px rgba(0,0,0,0.85);"></canvas>
+    </div>
+
+    <!-- Action Footer -->
+    <div style="margin-top:12px; display:flex; gap:10px; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+      <span id="confirm-batch-info" style="color:var(--accent2); font-size:.85rem; font-weight:600;">📦 Akan memproses batch 50 file</span>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-outline" onclick="closeConfirmModal()">❌ Batal</button>
+        <button class="btn btn-primary" id="btn-confirm-acc" onclick="accAndStartCrop()" style="font-size:0.95rem; font-weight:700; padding:8px 20px;">
+          ✅ ACC & Mulai Crop Sekarang 🚀
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const dropZone   = document.getElementById('drop-zone');
+  const fileInput  = document.getElementById('file-input');
+  const previewWrap= document.getElementById('preview-wrap');
+  const previewList= document.getElementById('preview-list');
+  const previewSum = document.getElementById('preview-summary');
+  const btnCrop    = document.getElementById('btn-crop');
+  const btnMark    = document.getElementById('btn-mark');
+  const btnPreviewVal = document.getElementById('btn-preview-val');
+  
+  let selectedFiles = [];
+  window.localFiles = []; // Global untuk menyimpan list file dari folder lokal
+  let allResultFiles = []; // Global hasil crop semua file
+  
+  // Variables for Batch Processing (50 per batch)
+  window.currentProcessIndex = 0;
+  window.isExactCropMode = false;
+  const BATCH_LIMIT = 50;
+  
+  let manualBoxes = [];
+  let mCanvas, ctx, mImg;
+  let isDrawing = false, isDragging = false;
+  let startX, startY, currentX, currentY;
+  let dragBoxIndex = -1;
+  let dragOffsetX, dragOffsetY;
+
+  // Natural numeric sort helper (contoh: gambar (1), gambar (2), ... gambar (10))
+  function naturalSort(arr, keyFn = (x) => x) {
+    return arr.sort((a, b) => {
+      const nameA = String(keyFn(a) || '');
+      const nameB = String(keyFn(b) || '');
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
+
+  // Drag & drop
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length > 0) {
+      selectedFiles = Array.from(e.dataTransfer.files);
+      naturalSort(selectedFiles, f => f.name);
+      window.localFiles = [];
+      window.currentProcessIndex = 0;
+      renderPreviews();
+    }
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+      selectedFiles = Array.from(fileInput.files);
+      naturalSort(selectedFiles, f => f.name);
+      window.localFiles = [];
+      window.currentProcessIndex = 0;
+      renderPreviews();
+    }
+  });
+
+  let currentInputBatch = 1;
+
+  function renderInputBatchTabs() {
+    const isLocalMode = (window.localFiles && window.localFiles.length > 0);
+    const items = isLocalMode ? window.localFiles : selectedFiles;
+    const total = items.length;
+    const tabsWrap = document.getElementById('input-batch-tabs-wrap');
+    const tabsList = document.getElementById('input-batch-tabs-list');
+    
+    if (total <= 50) {
+      if (tabsWrap) tabsWrap.style.display = 'none';
+      return;
+    }
+    
+    const totalBatches = Math.ceil(total / BATCH_LIMIT);
+    if (tabsWrap) tabsWrap.style.display = 'block';
+    if (tabsList) {
+      tabsList.innerHTML = '';
+      for (let b = 1; b <= totalBatches; b++) {
+        const start = (b - 1) * BATCH_LIMIT + 1;
+        const end = Math.min(b * BATCH_LIMIT, total);
+        const btn = document.createElement('button');
+        const isActive = (currentInputBatch === b);
+        btn.className = `batch-tab-btn ${isActive ? 'active' : ''}`;
+        btn.innerHTML = `
+          <span>📦 Batch ${b} (${start} - ${end})</span>
+          <span class="batch-tab-badge">${end - start + 1} File</span>
+        `;
+        btn.onclick = (e) => {
+          e.preventDefault();
+          selectInputBatch(b);
+        };
+        tabsList.appendChild(btn);
+      }
+    }
+    updateInputBatchView();
+  }
+
+  function selectInputBatch(b) {
+    currentInputBatch = b;
+    window.currentProcessIndex = (b - 1) * BATCH_LIMIT;
+    renderInputBatchTabs();
+    
+    const isLocalMode = (window.localFiles && window.localFiles.length > 0);
+    const items = isLocalMode ? window.localFiles : selectedFiles;
+    const total = items.length;
+    const start = (b - 1) * BATCH_LIMIT + 1;
+    const end = Math.min(b * BATCH_LIMIT, total);
+    
+    btnCrop.innerHTML = `🚀 Mulai Crop (Batch ${b}: File ${start} - ${end})`;
+  }
+
+  function updateInputBatchView() {
+    const isLocalMode = (window.localFiles && window.localFiles.length > 0);
+    const items = isLocalMode ? window.localFiles : selectedFiles;
+    const total = items.length;
+    const start = (currentInputBatch - 1) * BATCH_LIMIT;
+    const end = Math.min(start + BATCH_LIMIT, total);
+    const batchItems = items.slice(start, end);
+
+    const info = document.getElementById('input-active-batch-info');
+    if (info) {
+      info.textContent = `Batch ${currentInputBatch} Aktif: Menampilkan file ${start + 1} s/d ${end} dari ${total} file`;
+    }
+
+    previewList.innerHTML = '';
+    if (isLocalMode) {
+      batchItems.forEach(path => {
+        const f = document.createElement('div');
+        f.style.cssText = 'padding: 4px 8px; background: var(--surface); border-radius: 4px; font-size: 0.75rem; color: var(--accent); border: 1px solid var(--border);';
+        f.innerText = path.split('\\').pop().split('/').pop();
+        previewList.appendChild(f);
+      });
+    } else {
+      batchItems.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const item = document.createElement('div');
+          item.style.cssText = 'width:80px; text-align:center; background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; padding:4px; font-size:.7rem;';
+          item.innerHTML = `<img src="${e.target.result}" style="width:100%; height:60px; object-fit:contain; border-radius:4px;"/>
+                            <p style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:4px; color:var(--muted);">${file.name}</p>`;
+          previewList.appendChild(item);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  }
+
+  function renderPreviews() {
+    currentInputBatch = 1;
+    window.currentProcessIndex = 0;
+    previewSum.textContent = `📄 ${selectedFiles.length} file dipilih (terurut dari awal)`;
+    renderInputBatchTabs();
+    if (selectedFiles.length <= 50) {
+      updateInputBatchView();
+    }
+    
+    previewWrap.style.display = 'block';
+    btnCrop.disabled = false;
+    btnMark.disabled = false;
+    btnPreviewVal.disabled = false;
+  }
+
+  async function loadLocalFolder() {
+    const folder = document.getElementById('local-folder-input').value.trim();
+    if (!folder) return showAlert('Masukkan path folder terlebih dahulu', 'error');
+    
+    const fd = new FormData();
+    fd.append('local_folder', folder);
+    
+    try {
+      const res = await fetch('/get_local_images', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.status === 'success') {
+         window.localFiles = data.images || [];
+         naturalSort(window.localFiles, path => path.split('\\').pop().split('/').pop());
+         selectedFiles = [];
+         fileInput.value = '';
+         currentInputBatch = 1;
+         window.currentProcessIndex = 0;
+         
+         previewSum.textContent = `📄 ${window.localFiles.length} gambar ditemukan di folder lokal (terurut nama dari awal sampai akhir).`;
+         renderInputBatchTabs();
+         if (window.localFiles.length <= 50) {
+           updateInputBatchView();
+         }
+         
+         previewWrap.style.display = 'block';
+         btnCrop.disabled = false;
+         btnMark.disabled = false;
+         btnPreviewVal.disabled = false;
+         showAlert(`${data.images.length} gambar siap diproses dari lokal!`, 'success');
+      } else {
+         showAlert(data.error, 'error');
+      }
+    } catch (e) {
+      showAlert('Gagal memuat folder: ' + e.message, 'error');
+    }
+  }
+
+  // --- ALERTS & PROGRESS ---
+  function showAlert(msg, type='error') {
+    const el = document.getElementById('alert-box');
+    el.textContent = msg;
+    el.className = `alert-${type}`;
+    el.style.display = 'block';
+  }
+  function hideAlert() { document.getElementById('alert-box').style.display = 'none'; }
+
+  function setProgress(pct, label) {
+    document.getElementById('prog-fill').style.width = pct + '%';
+    document.getElementById('progress-label').textContent = label;
+  }
+
+  // --- SISTEM UTAMA: START CROP ---
+  async function startCrop(isManual = false) {
+    if (window.currentProcessIndex > 0 && window.isExactCropMode) {
+      return submitExactCrop();
+    }
+    window.isExactCropMode = false;
+    
+    const isLocalMode = (window.localFiles && window.localFiles.length > 0);
+    const itemsToProcess = isLocalMode ? window.localFiles : selectedFiles;
+    
+    if (itemsToProcess.length === 0) {
+      return showAlert('Pilih folder lokal ATAU upload gambar terlebih dahulu!', 'error');
+    }
+
+    btnCrop.disabled = true;
+    btnMark.disabled = true;
+    btnPreviewVal.disabled = true;
+    
+    document.getElementById('progress-wrap').style.display = 'block';
+    document.getElementById('result-card').style.display = 'none';
+    hideAlert();
+    
+    const CHUNK_SIZE = isLocalMode ? 1 : 5; // Lokal 1 per 1, Upload 5 per 5
+    const totalItems = itemsToProcess.length;
+    if (window.currentProcessIndex === 0) {
+      allResultFiles = [];
+    }
+    let errorMessages = [];
+    let successCount = 0;
+    let failCount = 0;
+    
+    let limit = Math.min(window.currentProcessIndex + BATCH_LIMIT, totalItems);
+    const currentBatchNum = Math.floor(window.currentProcessIndex / BATCH_LIMIT) + 1;
+    const batchStartIdx = window.currentProcessIndex + 1;
+    const batchEndIdx = limit;
+    const batchLabel = `Batch ${currentBatchNum} (${batchStartIdx} - ${batchEndIdx})`;
+    
+    // Otomatis aktifkan tab batch yang sedang dikerjakan
+    window.activeBatchTab = currentBatchNum;
+    
+    for (let i = window.currentProcessIndex; i < limit; i += CHUNK_SIZE) {
+      const chunk = itemsToProcess.slice(i, i + CHUNK_SIZE);
+      const fd = new FormData();
+      
+      if (isLocalMode) {
+         fd.append('file_path', chunk[0]);
+      } else {
+         chunk.forEach(f => fd.append('file', f));
+      }
+
+      if (isManual || manualBoxes.length > 0) {
+        fd.append('method', 'manual');
+        fd.append('manual_boxes', JSON.stringify(manualBoxes));
+      } else {
+        fd.append('method', 'auto');
+      }
+
+      fd.append('group_by_box', 'true');
+      fd.append('deskew', 'true');
+      fd.append('margin_mm', '2.0');
+      fd.append('resize', 'true');
+      fd.append('only_squares', 'false');
+      fd.append('only_red', 'false');
+      fd.append('clean_red', 'false');
+      fd.append('exclude_empty', 'false');
+      fd.append('exclude_top_pct', '0');
+      fd.append('crop_to_content', 'false');
+      fd.append('out_dpi', document.getElementById('opt-out-dpi').value);
+      fd.append('size_h', document.getElementById('opt-size-h').value);
+      fd.append('size_w', document.getElementById('opt-size-w').value);
+      fd.append('custom_output_dir', document.getElementById('opt-output-dir').value);
+      fd.append('min_area', '5000');
+
+      const progressPct = Math.round(((i + CHUNK_SIZE) / totalItems) * 100);
+      setProgress(Math.min(progressPct, 99), `Memproses ${batchLabel} — file ${i+1} sampai ${Math.min(i+CHUNK_SIZE, totalItems)} dari ${totalItems} file...`);
+
+      try {
+        const endpoint = isLocalMode ? '/crop_local_file' : '/crop';
+        const resp = await fetch(endpoint, { method: 'POST', body: fd });
+        const data = await resp.json();
+
+        if (data.status === 'success') {
+          if (data.files && data.files.length > 0) {
+             const taggedFiles = data.files.map(f => ({
+               ...f,
+               batch_id: currentBatchNum,
+               batch_label: batchLabel
+             }));
+             allResultFiles = allResultFiles.concat(taggedFiles);
+             renderResults({ total: allResultFiles.filter(f => !f.is_debug).length, files: allResultFiles, uid: 'batch' }, false);
+          }
+          successCount += chunk.length;
+        } else {
+          failCount += chunk.length;
+          const failName = isLocalMode ? chunk[0].split('\\').pop().split('/').pop() : (chunk[0].name || `file ke-${i+1}`);
+          errorMessages.push(`${failName}: ${data.error || 'Gagal memproses'}`);
+          continue;
+        }
+      } catch (err) {
+        failCount += chunk.length;
+        const failName = isLocalMode ? chunk[0].split('\\').pop().split('/').pop() : (chunk[0].name || `file ke-${i+1}`);
+        errorMessages.push(`${failName}: ${err.message}`);
+        continue;
+      }
+    }
+
+    // Tampilkan hasil final batch terbaru
+    if (allResultFiles.length > 0) {
+      window.activeBatchTab = currentBatchNum;
+      renderResults({ total: allResultFiles.filter(f => !f.is_debug).length, files: allResultFiles, uid: 'batch' }, true);
+    }
+
+    // Tampilkan ringkasan status
+    if (errorMessages.length > 0 && successCount > 0) {
+      setProgress(100, `✅ ${successCount} file berhasil, ⚠️ ${failCount} file gagal.`);
+      showAlert(`${failCount} file gagal diproses:\n${errorMessages.slice(0, 5).join('\n')}${errorMessages.length > 5 ? '\n...dan ' + (errorMessages.length - 5) + ' lainnya' : ''}`, 'error');
+    } else if (errorMessages.length > 0 && successCount === 0) {
+      setProgress(0, '');
+      showAlert(`Semua ${failCount} file gagal diproses. Error: ${errorMessages[0]}`, 'error');
+    }
+
+    window.currentProcessIndex = limit;
+    
+    if (window.currentProcessIndex < totalItems) {
+      setProgress(100, `⏸️ Selesai ${window.currentProcessIndex} dari ${totalItems} file. Klik Lanjut Crop untuk 50 file berikutnya.`);
+      btnCrop.innerHTML = `🚀 Lanjut Crop (${window.currentProcessIndex}/${totalItems})`;
+    } else {
+      setProgress(100, `✅ Selesai memproses semua ${totalItems} file!`);
+      btnCrop.innerHTML = `🚀 2. Mulai Crop`;
+      window.currentProcessIndex = 0; // reset
+    }
+    
+    btnCrop.disabled = false;
+    btnMark.disabled = false;
+    btnPreviewVal.disabled = false;
+  }
+
+  // --- MANUAL MARKING LOGIC (SISTEM ASLI DENGAN NAVIGASI GAMBAR & TOOLS) ---
+  let markingImgIndex = 0;
+
+  function openMarkingModal() {
+    const isLocalMode = (window.localFiles && window.localFiles.length > 0);
+    const itemsToProcess = isLocalMode ? window.localFiles : selectedFiles;
+    if (itemsToProcess.length === 0) return showAlert('Pilih folder lokal ATAU upload gambar terlebih dahulu!', 'error');
+
+    markingImgIndex = 0;
+    document.getElementById('marking-modal').style.display = 'flex';
+    mCanvas = document.getElementById('marking-canvas');
+    ctx = mCanvas.getContext('2d');
+    updateBoxCount();
+    loadMarkingImg();
+    initCanvasEvents();
+  }
+
+  function loadMarkingImg() {
+    const isLocalMode = (window.localFiles && window.localFiles.length > 0);
+    const itemsToProcess = isLocalMode ? window.localFiles : selectedFiles;
+    if (itemsToProcess.length === 0) return;
+
+    if (markingImgIndex < 0) markingImgIndex = 0;
+    if (markingImgIndex >= itemsToProcess.length) markingImgIndex = itemsToProcess.length - 1;
+
+    const item = itemsToProcess[markingImgIndex];
+    const itemName = isLocalMode ? item.split('\\').pop().split('/').pop() : item.name;
+    document.getElementById('marking-img-name').textContent = `File ${markingImgIndex + 1}/${itemsToProcess.length}: ${itemName}`;
+    document.getElementById('btn-marking-prev').disabled = (markingImgIndex === 0);
+    document.getElementById('btn-marking-next').disabled = (markingImgIndex === itemsToProcess.length - 1);
+
+    mImg = new Image();
+    mImg.onload = () => {
+      mCanvas.width = mImg.naturalWidth || mImg.width;
+      mCanvas.height = mImg.naturalHeight || mImg.height;
+      mCanvas.style.height = 'auto';
+      mCanvas.style.display = 'block';
+      mCanvas.style.margin = 'auto';
+      const currentZoom = document.getElementById('marking-zoom')?.value || 'fit';
+      changeMarkingZoom(currentZoom);
+      redrawCanvas();
+    };
+
+    if (isLocalMode) {
+      mImg.src = `/serve_local_image?path=${encodeURIComponent(item)}&t=${Date.now()}`;
+    } else {
+      mImg.src = URL.createObjectURL(item);
+    }
+  }
+
+  function markingPrevImg() {
+    if (markingImgIndex > 0) {
+      markingImgIndex--;
+      loadMarkingImg();
+    }
+  }
+
+  function markingNextImg() {
+    const isLocalMode = (window.localFiles && window.localFiles.length > 0);
+    const itemsToProcess = isLocalMode ? window.localFiles : selectedFiles;
+    if (markingImgIndex < itemsToProcess.length - 1) {
+      markingImgIndex++;
+      loadMarkingImg();
+    }
+  }
+
+  function shiftAllMarkingBoxes(dxPx, dyPx) {
+    if (manualBoxes.length === 0 || !mCanvas) return;
+    const dx = dxPx / mCanvas.width;
+    const dy = dyPx / mCanvas.height;
+    manualBoxes.forEach(b => {
+      b.x = Math.max(0, Math.min(1 - b.w, b.x + dx));
+      b.y = Math.max(0, Math.min(1 - b.h, b.y + dy));
+    });
+    redrawCanvas();
+  }
+
+  function scaleAllMarkingBoxes(factor) {
+    if (manualBoxes.length === 0 || !mCanvas) return;
+    manualBoxes.forEach(b => {
+      const nw = Math.max(0.02, Math.min(1, b.w * factor));
+      const nh = Math.max(0.02, Math.min(1, b.h * factor));
+      b.x = Math.max(0, Math.min(1 - nw, b.x - (nw - b.w) / 2));
+      b.y = Math.max(0, Math.min(1 - nh, b.y - (nh - b.h) / 2));
+      b.w = nw;
+      b.h = nh;
+    });
+    redrawCanvas();
+  }
+
+  function changeMarkingZoom(val) {
+    if (!mCanvas) return;
+    if (val === 'fit') {
+      mCanvas.style.maxWidth = '1100px';
+      mCanvas.style.width = '100%';
+    } else if (val === 'large') {
+      mCanvas.style.maxWidth = '1450px';
+      mCanvas.style.width = '100%';
+    } else if (val === 'xlarge') {
+      mCanvas.style.maxWidth = '1800px';
+      mCanvas.style.width = '100%';
+    } else if (val === 'original') {
+      mCanvas.style.maxWidth = 'none';
+      mCanvas.style.width = (mCanvas.width) + 'px';
+    } else if (val === 'compact') {
+      mCanvas.style.maxWidth = '850px';
+      mCanvas.style.width = '100%';
+    }
+  }
+
+  function createDefault3x3Marking() {
+    if (!mCanvas) return;
+    manualBoxes = [];
+    const rows = 3, cols = 3;
+    const boxW = 0.23, boxH = 0.16;
+    const startX = 0.14, startY = 0.28;
+    const gapX = 0.05, gapY = 0.05;
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        manualBoxes.push({
+          x: startX + c * (boxW + gapX),
+          y: startY + r * (boxH + gapY),
+          w: boxW,
+          h: boxH
+        });
+      }
+    }
+    updateBoxCount();
+    redrawCanvas();
+  }
+
+  function closeMarkingModal() {
+    document.getElementById('marking-modal').style.display = 'none';
+  }
+
+  function clearMarkingBoxes() {
+    manualBoxes = [];
+    updateBoxCount();
+    redrawCanvas();
+  }
+
+  function updateBoxCount() {
+    document.getElementById('box-count').innerText = manualBoxes.length;
+  }
+
+  function redrawCanvas() {
+    ctx.clearRect(0, 0, mCanvas.width, mCanvas.height);
+    ctx.drawImage(mImg, 0, 0, mCanvas.width, mCanvas.height);
+    ctx.fillStyle = 'rgba(34, 211, 166, 0.25)';
+    ctx.strokeStyle = '#22d3a6';
+    ctx.lineWidth = 2;
+
+    manualBoxes.forEach((b, idx) => {
+      const x = b.x * mCanvas.width;
+      const y = b.y * mCanvas.height;
+      const w = b.w * mCanvas.width;
+      const h = b.h * mCanvas.height;
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeRect(x, y, w, h);
+
+      // Label nomor / huruf box
+      ctx.fillStyle = '#22d3a6';
+      ctx.font = 'bold 12px sans-serif';
+      const label = idx < 26 ? `_${String.fromCharCode(97 + idx)}` : `_${idx + 1}`;
+      ctx.fillText(label, x + 4, y + 16);
+      ctx.fillStyle = 'rgba(34, 211, 166, 0.25)';
+    });
+
+    if (isDrawing && !isDragging) {
+      ctx.fillStyle = 'rgba(124, 58, 237, 0.25)';
+      ctx.strokeStyle = '#7c3aed';
+      const w = currentX - startX;
+      const h = currentY - startY;
+      const size = Math.max(Math.abs(w), Math.abs(h));
+      const drawW = w < 0 ? -size : size;
+      const drawH = h < 0 ? -size : size;
+      ctx.fillRect(startX, startY, drawW, drawH);
+      ctx.strokeRect(startX, startY, drawW, drawH);
+    }
+  }
+
+  function initCanvasEvents() {
+    mCanvas.onmousedown = (e) => {
+      const rect = mCanvas.getBoundingClientRect();
+      const scaleX = mCanvas.width / rect.width;
+      const scaleY = mCanvas.height / rect.height;
+      const mx = (e.clientX - rect.left) * scaleX;
+      const my = (e.clientY - rect.top) * scaleY;
+      
+      dragBoxIndex = manualBoxes.findIndex(b => {
+        const bx = b.x * mCanvas.width, by = b.y * mCanvas.height;
+        const bw = b.w * mCanvas.width, bh = b.h * mCanvas.height;
+        return mx >= bx && mx <= bx + bw && my >= by && my <= by + bh;
+      });
+
+      if (dragBoxIndex !== -1) {
+        isDragging = true;
+        const b = manualBoxes[dragBoxIndex];
+        dragOffsetX = mx - (b.x * mCanvas.width);
+        dragOffsetY = my - (b.y * mCanvas.height);
+      } else {
+        isDrawing = true;
+        startX = mx;
+        startY = my;
+        currentX = mx;
+        currentY = my;
+      }
+    };
+
+    mCanvas.onmousemove = (e) => {
+      const rect = mCanvas.getBoundingClientRect();
+      const scaleX = mCanvas.width / rect.width;
+      const scaleY = mCanvas.height / rect.height;
+      const mx = Math.max(0, Math.min((e.clientX - rect.left) * scaleX, mCanvas.width));
+      const my = Math.max(0, Math.min((e.clientY - rect.top) * scaleY, mCanvas.height));
+
+      if (isDragging && dragBoxIndex !== -1) {
+        const b = manualBoxes[dragBoxIndex];
+        b.x = Math.max(0, Math.min(1 - b.w, (mx - dragOffsetX) / mCanvas.width));
+        b.y = Math.max(0, Math.min(1 - b.h, (my - dragOffsetY) / mCanvas.height));
+        redrawCanvas();
+      } else if (isDrawing) {
+        currentX = mx;
+        currentY = my;
+        redrawCanvas();
+      }
+    };
+
+    mCanvas.onmouseup = (e) => {
+      if (isDrawing) {
+        isDrawing = false;
+        const w = Math.abs(currentX - startX);
+        const h = Math.abs(currentY - startY);
+        const size = Math.max(w, h);
+        if (size > 10) {
+          const finalX = startX < currentX ? startX : startX - size;
+          const finalY = startY < currentY ? startY : startY - size;
+          manualBoxes.push({
+            x: finalX / mCanvas.width,
+            y: finalY / mCanvas.height,
+            w: size / mCanvas.width,
+            h: size / mCanvas.height
+          });
+          updateBoxCount();
+        }
+        redrawCanvas();
+      }
+      if (isDragging) {
+        isDragging = false;
+        dragBoxIndex = -1;
+      }
+    };
+
+    mCanvas.ondblclick = (e) => {
+      const rect = mCanvas.getBoundingClientRect();
+      const scaleX = mCanvas.width / rect.width;
+      const scaleY = mCanvas.height / rect.height;
+      const mx = (e.clientX - rect.left) * scaleX;
+      const my = (e.clientY - rect.top) * scaleY;
+      
+      const idx = manualBoxes.findIndex(b => {
+        const bx = b.x * mCanvas.width, by = b.y * mCanvas.height;
+        const bw = b.w * mCanvas.width, bh = b.h * mCanvas.height;
+        return mx >= bx && mx <= bx + bw && my >= by && my <= by + bh;
+      });
+
+      if (idx !== -1) {
+        manualBoxes.splice(idx, 1);
+        updateBoxCount();
+        redrawCanvas();
+      }
+    };
+  }
+
+  // Fungsi asli Simpan & Langsung Mulai Crop (Kembalikan ke sistem awal)
+  function saveMarkingAndCrop() {
+    if (manualBoxes.length === 0) {
+      alert("Harap buat minimal 1 kotak penanda terlebih dahulu.");
+      return;
+    }
+    closeMarkingModal();
+    window.currentProcessIndex = 0;
+    window.isExactCropMode = false;
+    startCrop(true);
+  }
+
+  // --- FITUR BARU: MODAL SESUAIKAN KOTAK & CROP ULANG (PER GAMBAR) ---
+  let adjustBoxes = [];
+  let adjustOriginalBoxes = [];
+  let adjustImg = new Image();
+  let adjustCanvas = null;
+  let adjustCtx = null;
+  let adjustDrag = null;
+  let selectedAdjustBoxIdx = -1;
+  let currentAdjustFilePath = '';
+  let currentAdjustImageName = '';
+  let currentAdjustPreviewUrl = '';
+
+  async function openAdjustModal(filePath, imageName, previewUrl) {
+    currentAdjustFilePath = filePath || '';
+    currentAdjustImageName = imageName || 'Gambar';
+    currentAdjustPreviewUrl = previewUrl || '';
+
+    // Cari file path jika kosong
+    if (!currentAdjustFilePath && window.localFiles && window.localFiles.length > 0) {
+      const found = window.localFiles.find(p => p.endsWith(imageName) || p.split('\\').pop().split('/').pop() === imageName);
+      if (found) currentAdjustFilePath = found;
+    }
+
+    document.getElementById('adjust-file-title').textContent = currentAdjustImageName;
+    document.getElementById('adjust-modal').style.display = 'flex';
+    document.getElementById('btn-adjust-recrop').disabled = false;
+    document.getElementById('btn-adjust-recrop').innerHTML = '🚀 Simpan & Crop Ulang Gambar Ini';
+
+    adjustCanvas = document.getElementById('adjust-canvas');
+    adjustCtx = adjustCanvas.getContext('2d');
+
+    // Load gambar asli
+    adjustImg = new Image();
+    adjustImg.onload = () => {
+      adjustCanvas.width = adjustImg.naturalWidth || adjustImg.width;
+      adjustCanvas.height = adjustImg.naturalHeight || adjustImg.height;
+      adjustCanvas.style.height = 'auto';
+      adjustCanvas.style.display = 'block';
+      adjustCanvas.style.margin = 'auto';
+      const currentZoom = document.getElementById('adjust-zoom')?.value || 'fit';
+      changeAdjustZoom(currentZoom);
+      redrawAdjustCanvas();
+      setupAdjustCanvasEvents();
+    };
+
+    if (currentAdjustFilePath) {
+      adjustImg.src = `/serve_local_image?path=${encodeURIComponent(currentAdjustFilePath)}&t=${Date.now()}`;
+    } else if (selectedFiles && selectedFiles.length > 0) {
+      const foundFile = Array.from(selectedFiles).find(f => f.name === imageName);
+      if (foundFile) {
+        adjustImg.src = URL.createObjectURL(foundFile);
+      } else {
+        adjustImg.src = previewUrl || '';
+      }
+    } else {
+      adjustImg.src = previewUrl || '';
+    }
+
+    // Ambil atau buat kotak awal
+    adjustBoxes = [];
+    selectedAdjustBoxIdx = 0;
+
+    try {
+      const fd = new FormData();
+      if (currentAdjustFilePath) {
+        fd.append('file_path', currentAdjustFilePath);
+      } else if (selectedFiles && selectedFiles.length > 0) {
+        const foundFile = Array.from(selectedFiles).find(f => f.name === imageName);
+        if (foundFile) fd.append('file', foundFile);
+      }
+
+      if (manualBoxes && manualBoxes.length > 0) {
+        fd.append('manual_boxes', JSON.stringify(manualBoxes));
+      }
+      fd.append('margin_mm', '2.0');
+      fd.append('deskew', 'true');
+
+      const resp = await fetch('/generate_crop_boxes', { method: 'POST', body: fd });
+      const data = await resp.json();
+      if (data.status === 'success' && data.boxes && data.boxes.length > 0) {
+        adjustBoxes = data.boxes.map(b => ({ ...b }));
+      }
+    } catch (e) {
+      console.warn("Gagal fetch kotak terdeteksi:", e);
+    }
+
+    if (adjustBoxes.length === 0) {
+      if (manualBoxes && manualBoxes.length > 0) {
+        adjustBoxes = manualBoxes.map(b => ({ ...b }));
+      } else {
+        // Buat 3x3 default
+        const rows = 3, cols = 3;
+        const boxW = 0.23, boxH = 0.16;
+        const startX = 0.14, startY = 0.28;
+        const gapX = 0.05, gapY = 0.05;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            adjustBoxes.push({
+              x: startX + c * (boxW + gapX),
+              y: startY + r * (boxH + gapY),
+              w: boxW,
+              h: boxH
+            });
+          }
+        }
+      }
+    }
+
+    adjustOriginalBoxes = JSON.parse(JSON.stringify(adjustBoxes));
+    redrawAdjustCanvas();
+  }
+
+  function closeAdjustModal() {
+    document.getElementById('adjust-modal').style.display = 'none';
+  }
+
+  function redrawAdjustCanvas() {
+    if (!adjustCtx || !adjustCanvas || !adjustImg) return;
+    adjustCtx.clearRect(0, 0, adjustCanvas.width, adjustCanvas.height);
+    adjustCtx.drawImage(adjustImg, 0, 0, adjustCanvas.width, adjustCanvas.height);
+
+    adjustBoxes.forEach((b, idx) => {
+      const bx = b.x * adjustCanvas.width;
+      const by = b.y * adjustCanvas.height;
+      const bw = b.w * adjustCanvas.width;
+      const bh = b.h * adjustCanvas.height;
+
+      const isSelected = (idx === selectedAdjustBoxIdx);
+
+      // Fill & Stroke
+      adjustCtx.fillStyle = isSelected ? 'rgba(168, 85, 247, 0.3)' : 'rgba(34, 211, 166, 0.22)';
+      adjustCtx.fillRect(bx, by, bw, bh);
+
+      adjustCtx.strokeStyle = isSelected ? '#a855f7' : '#22d3a6';
+      adjustCtx.lineWidth = isSelected ? 3 : 2;
+      adjustCtx.strokeRect(bx, by, bw, bh);
+
+      // Label kotak (_a, _b, _c ...)
+      const label = idx < 26 ? `_${String.fromCharCode(97 + idx)}` : `_${idx + 1}`;
+      adjustCtx.fillStyle = isSelected ? '#ffffff' : '#22d3a6';
+      adjustCtx.font = 'bold 13px sans-serif';
+      adjustCtx.fillText(label, bx + 5, by + 18);
+
+      // Handle resize di sudut jika kotak sedang aktif
+      if (isSelected) {
+        const hs = 10;
+        adjustCtx.fillStyle = '#a855f7';
+        adjustCtx.fillRect(bx - hs/2, by - hs/2, hs, hs);
+        adjustCtx.fillRect(bx + bw - hs/2, by - hs/2, hs, hs);
+        adjustCtx.fillRect(bx - hs/2, by + bh - hs/2, hs, hs);
+        adjustCtx.fillRect(bx + bw - hs/2, by + bh - hs/2, hs, hs);
+      }
+    });
+  }
+
+  function setupAdjustCanvasEvents() {
+    adjustCanvas.onmousedown = (e) => {
+      const rect = adjustCanvas.getBoundingClientRect();
+      const scaleX = adjustCanvas.width / rect.width;
+      const scaleY = adjustCanvas.height / rect.height;
+      const mx = (e.clientX - rect.left) * scaleX;
+      const my = (e.clientY - rect.top) * scaleY;
+
+      // Cek apakah klik handle pada kotak yang sedang aktif
+      if (selectedAdjustBoxIdx >= 0 && selectedAdjustBoxIdx < adjustBoxes.length) {
+        const b = adjustBoxes[selectedAdjustBoxIdx];
+        const bx = b.x * adjustCanvas.width, by = b.y * adjustCanvas.height;
+        const bw = b.w * adjustCanvas.width, bh = b.h * adjustCanvas.height;
+        const hs = 14;
+
+        if (mx > bx-hs && mx < bx+hs && my > by-hs && my < by+hs) {
+          adjustDrag = { type: 'tl', idx: selectedAdjustBoxIdx, bx, by, bw, bh, mx, my }; return;
+        } else if (mx > bx+bw-hs && mx < bx+bw+hs && my > by-hs && my < by+hs) {
+          adjustDrag = { type: 'tr', idx: selectedAdjustBoxIdx, bx, by, bw, bh, mx, my }; return;
+        } else if (mx > bx-hs && mx < bx+hs && my > by+bh-hs && my < by+bh+hs) {
+          adjustDrag = { type: 'bl', idx: selectedAdjustBoxIdx, bx, by, bw, bh, mx, my }; return;
+        } else if (mx > bx+bw-hs && mx < bx+bw+hs && my > by+bh-hs && my < by+bh+hs) {
+          adjustDrag = { type: 'br', idx: selectedAdjustBoxIdx, bx, by, bw, bh, mx, my }; return;
+        }
+      }
+
+      // Cek apakah klik di dalam salah satu kotak
+      const hitIdx = adjustBoxes.findIndex(b => {
+        const bx = b.x * adjustCanvas.width, by = b.y * adjustCanvas.height;
+        const bw = b.w * adjustCanvas.width, bh = b.h * adjustCanvas.height;
+        return mx >= bx && mx <= bx + bw && my >= by && my <= by + bh;
+      });
+
+      if (hitIdx !== -1) {
+        selectedAdjustBoxIdx = hitIdx;
+        const b = adjustBoxes[hitIdx];
+        adjustDrag = {
+          type: 'move',
+          idx: hitIdx,
+          bx: b.x * adjustCanvas.width,
+          by: b.y * adjustCanvas.height,
+          bw: b.w * adjustCanvas.width,
+          bh: b.h * adjustCanvas.height,
+          mx, my
+        };
+        redrawAdjustCanvas();
+      } else {
+        selectedAdjustBoxIdx = -1;
+        redrawAdjustCanvas();
+      }
+    };
+
+    adjustCanvas.onmousemove = (e) => {
+      if (!adjustDrag) return;
+      const rect = adjustCanvas.getBoundingClientRect();
+      const scaleX = adjustCanvas.width / rect.width;
+      const scaleY = adjustCanvas.height / rect.height;
+      const mx = Math.max(0, Math.min((e.clientX - rect.left) * scaleX, adjustCanvas.width));
+      const my = Math.max(0, Math.min((e.clientY - rect.top) * scaleY, adjustCanvas.height));
+
+      const dx = mx - adjustDrag.mx;
+      const dy = my - adjustDrag.my;
+      let { bx, by, bw, bh } = adjustDrag;
+
+      if (adjustDrag.type === 'move') {
+        bx += dx; by += dy;
+      } else if (adjustDrag.type === 'tl') {
+        bx += dx; by += dy; bw -= dx; bh -= dy;
+      } else if (adjustDrag.type === 'tr') {
+        by += dy; bw += dx; bh -= dy;
+      } else if (adjustDrag.type === 'bl') {
+        bx += dx; bw -= dx; bh += dy;
+      } else if (adjustDrag.type === 'br') {
+        bw += dx; bh += dy;
+      }
+
+      if (bw > 10 && bh > 10) {
+        const b = adjustBoxes[adjustDrag.idx];
+        b.x = Math.max(0, Math.min(1, bx / adjustCanvas.width));
+        b.y = Math.max(0, Math.min(1, by / adjustCanvas.height));
+        b.w = Math.max(0.01, Math.min(1 - b.x, bw / adjustCanvas.width));
+        b.h = Math.max(0.01, Math.min(1 - b.y, bh / adjustCanvas.height));
+      }
+      redrawAdjustCanvas();
+    };
+
+    adjustCanvas.onmouseup = () => { adjustDrag = null; };
+    adjustCanvas.onmouseleave = () => { adjustDrag = null; };
+
+    adjustCanvas.ondblclick = (e) => {
+      const rect = adjustCanvas.getBoundingClientRect();
+      const scaleX = adjustCanvas.width / rect.width;
+      const scaleY = adjustCanvas.height / rect.height;
+      const mx = (e.clientX - rect.left) * scaleX;
+      const my = (e.clientY - rect.top) * scaleY;
+
+      const idx = adjustBoxes.findIndex(b => {
+        const bx = b.x * adjustCanvas.width, by = b.y * adjustCanvas.height;
+        const bw = b.w * adjustCanvas.width, bh = b.h * adjustCanvas.height;
+        return mx >= bx && mx <= bx + bw && my >= by && my <= by + bh;
+      });
+
+      if (idx !== -1) {
+        adjustBoxes.splice(idx, 1);
+        selectedAdjustBoxIdx = -1;
+        redrawAdjustCanvas();
+      }
+    };
+  }
+
+  function shiftAllAdjustBoxes(dirX, dirY) {
+    if (adjustBoxes.length === 0 || !adjustCanvas) return;
+    const stepPx = parseInt(document.getElementById('adjust-step').value) || 5;
+    const dx = (dirX * stepPx) / adjustCanvas.width;
+    const dy = (dirY * stepPx) / adjustCanvas.height;
+
+    adjustBoxes.forEach(b => {
+      b.x = Math.max(0, Math.min(1 - b.w, b.x + dx));
+      b.y = Math.max(0, Math.min(1 - b.h, b.y + dy));
+    });
+    redrawAdjustCanvas();
+  }
+
+  function scaleAllAdjustBoxes(factor) {
+    if (adjustBoxes.length === 0 || !adjustCanvas) return;
+    adjustBoxes.forEach(b => {
+      const nw = Math.max(0.02, Math.min(1, b.w * factor));
+      const nh = Math.max(0.02, Math.min(1, b.h * factor));
+      b.x = Math.max(0, Math.min(1 - nw, b.x - (nw - b.w) / 2));
+      b.y = Math.max(0, Math.min(1 - nh, b.y - (nh - b.h) / 2));
+      b.w = nw;
+      b.h = nh;
+    });
+    redrawAdjustCanvas();
+  }
+
+  function resetAdjustBoxes() {
+    adjustBoxes = JSON.parse(JSON.stringify(adjustOriginalBoxes));
+    selectedAdjustBoxIdx = -1;
+    redrawAdjustCanvas();
+  }
+
+  function changeAdjustZoom(val) {
+    if (!adjustCanvas) return;
+    if (val === 'fit') {
+      adjustCanvas.style.maxWidth = '1100px';
+      adjustCanvas.style.width = '100%';
+    } else if (val === 'large') {
+      adjustCanvas.style.maxWidth = '1450px';
+      adjustCanvas.style.width = '100%';
+    } else if (val === 'xlarge') {
+      adjustCanvas.style.maxWidth = '1800px';
+      adjustCanvas.style.width = '100%';
+    } else if (val === 'original') {
+      adjustCanvas.style.maxWidth = 'none';
+      adjustCanvas.style.width = (adjustCanvas.width) + 'px';
+    } else if (val === 'compact') {
+      adjustCanvas.style.maxWidth = '850px';
+      adjustCanvas.style.width = '100%';
+    }
+  }
+
+  function applyAdjustAsGlobalManual() {
+    if (adjustBoxes.length === 0) return;
+    manualBoxes = JSON.parse(JSON.stringify(adjustBoxes));
+    updateBoxCount();
+    closeAdjustModal();
+    showAlert('✅ Pola kotak ini berhasil disimpan sebagai acuan default (Manual ROI) untuk gambar-gambar berikutnya!', 'success');
+  }
+
+  async function submitSingleImageReCrop() {
+    if (adjustBoxes.length === 0) return alert('Tidak ada kotak penanda untuk dipotong.');
+
+    const btn = document.getElementById('btn-adjust-recrop');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Sedang Memotong Ulang...';
+
+    const fd = new FormData();
+    if (currentAdjustFilePath) {
+      fd.append('file_path', currentAdjustFilePath);
+    } else if (selectedFiles && selectedFiles.length > 0) {
+      const foundFile = Array.from(selectedFiles).find(f => f.name === currentAdjustImageName);
+      if (foundFile) fd.append('file', foundFile);
+    }
+
+    fd.append('exact_boxes', JSON.stringify(adjustBoxes));
+    fd.append('out_dpi', document.getElementById('opt-out-dpi').value);
+    fd.append('size_h', document.getElementById('opt-size-h').value);
+    fd.append('size_w', document.getElementById('opt-size-w').value);
+    fd.append('custom_output_dir', document.getElementById('opt-output-dir').value);
+    fd.append('group_by_box', 'true');
+    fd.append('deskew', 'true');
+    fd.append('margin_mm', '2.0');
+
+    try {
+      const resp = await fetch('/crop_exact', { method: 'POST', body: fd });
+      const data = await resp.json();
+
+      if (data.status === 'success' && data.files && data.files.length > 0) {
+        // Cari batch info lama dari gambar ini
+        const oldFile = (allResultFiles || []).find(f => f.image_name === currentAdjustImageName);
+        const curBatchId = oldFile ? oldFile.batch_id : (window.activeBatchTab || 1);
+        const curBatchLabel = oldFile ? oldFile.batch_label : `Batch ${curBatchId}`;
+
+        // Beri timestamp pada file yang baru di-crop agar browser tidak menampilkan cache lama
+        const updatedFiles = data.files.map(f => ({
+          ...f,
+          batch_id: curBatchId,
+          batch_label: curBatchLabel,
+          url: f.url.includes('?') ? f.url : `${f.url}?t=${Date.now()}`
+        }));
+
+        // Ganti hasil file lama dari gambar ini di allResultFiles dengan hasil crop baru
+        allResultFiles = (allResultFiles || []).filter(f => f.image_name !== currentAdjustImageName);
+        allResultFiles = allResultFiles.concat(updatedFiles);
+
+        // Update tampilan galeri
+        renderResults({ total: allResultFiles.filter(f => !f.is_debug).length, files: allResultFiles, uid: 'batch' }, false);
+
+        closeAdjustModal();
+        showAlert(`✅ Sukses memotong ulang ${currentAdjustImageName} dengan posisi kotak yang baru!`, 'success');
+      } else {
+        alert('Gagal memotong ulang: ' + (data.error || 'Terjadi kesalahan'));
+      }
+    } catch (err) {
+      alert('Gagal menghubungi server: ' + err.message);
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '🚀 Simpan & Crop Ulang Gambar Ini';
+  }
+
+  // --- KONFIRMASI & ACC KOTAK SEBELUM CROP ---
+  let confirmBoxes = [];
+  let confirmImgIndex = 0;
+  let confirmImg = null;
+  let confirmCanvas = null;
+  let confirmCtx = null;
+  let confirmDrag = null;
+  let selectedConfirmBoxIdx = 0;
+  let confirmOriginalBoxes = [];
+
+  async function requestCropWithConfirmation() {
+    const isLocalMode = (window.localFiles && window.localFiles.length > 0);
+    const itemsToProcess = isLocalMode ? window.localFiles : selectedFiles;
+    
+    if (itemsToProcess.length === 0) {
+      return showAlert('Pilih folder lokal ATAU upload gambar terlebih dahulu!', 'error');
+    }
+    
+    hideAlert();
+    confirmImgIndex = window.currentProcessIndex || 0;
+    document.getElementById('confirm-crop-modal').style.display = 'flex';
+    confirmCanvas = document.getElementById('confirm-canvas');
+    confirmCtx = confirmCanvas.getContext('2d');
+    
+    await loadConfirmImageAndBoxes();
+    setupConfirmCanvasEvents();
+  }
+
+  function closeConfirmModal() {
+    document.getElementById('confirm-crop-modal').style.display = 'none';
+  }
+
+  async function loadConfirmImageAndBoxes() {
+    const isLocalMode = (window.localFiles && window.localFiles.length > 0);
+    const itemsToProcess = isLocalMode ? window.localFiles : selectedFiles;
+    if (itemsToProcess.length === 0) return;
+    
+    if (confirmImgIndex < 0) confirmImgIndex = 0;
+    if (confirmImgIndex >= itemsToProcess.length) confirmImgIndex = itemsToProcess.length - 1;
+    
+    const item = itemsToProcess[confirmImgIndex];
+    const itemName = isLocalMode ? item.split('\\').pop().split('/').pop() : item.name;
+    const totalItems = itemsToProcess.length;
+    const batchStart = window.currentProcessIndex + 1;
+    const batchEnd = Math.min(window.currentProcessIndex + BATCH_LIMIT, totalItems);
+    
+    document.getElementById('confirm-img-title').textContent = `File ${confirmImgIndex + 1}/${totalItems}: ${itemName}`;
+    document.getElementById('confirm-batch-info').textContent = `📦 Batch: File ${batchStart} s/d ${batchEnd} dari ${totalItems} file`;
+    document.getElementById('btn-confirm-prev').disabled = (confirmImgIndex === 0);
+    document.getElementById('btn-confirm-next').disabled = (confirmImgIndex === totalItems - 1);
+    
+    // Load image
+    confirmImg = new Image();
+    const imgLoadedPromise = new Promise((resolve) => {
+      confirmImg.onload = () => {
+        confirmCanvas.width = confirmImg.naturalWidth || confirmImg.width;
+        confirmCanvas.height = confirmImg.naturalHeight || confirmImg.height;
+        confirmCanvas.style.height = 'auto';
+        confirmCanvas.style.display = 'block';
+        confirmCanvas.style.margin = 'auto';
+        const currentZoom = document.getElementById('confirm-zoom')?.value || 'fit';
+        changeConfirmZoom(currentZoom);
+        resolve();
+      };
+    });
+    
+    if (isLocalMode) {
+      confirmImg.src = `/serve_local_image?path=${encodeURIComponent(item)}&t=${Date.now()}`;
+    } else {
+      confirmImg.src = URL.createObjectURL(item);
+    }
+    
+    // Jika confirmBoxes belum ada, ambil deteksi awal dari server atau manualBoxes
+    if (confirmBoxes.length === 0) {
+      if (manualBoxes && manualBoxes.length > 0) {
+        confirmBoxes = JSON.parse(JSON.stringify(manualBoxes));
+      } else {
+        try {
+          const fd = new FormData();
+          if (isLocalMode) {
+            fd.append('file_path', item);
+          } else {
+            fd.append('file', item);
+          }
+          fd.append('margin_mm', '2.0');
+          fd.append('deskew', 'true');
+          
+          const resp = await fetch('/generate_crop_boxes', { method: 'POST', body: fd });
+          const data = await resp.json();
+          if (data.status === 'success' && data.boxes && data.boxes.length > 0) {
+            confirmBoxes = data.boxes.map(b => ({ ...b }));
+          }
+        } catch (e) {
+          console.warn("Auto detect failed, creating default:", e);
+        }
+      }
+      
+      if (confirmBoxes.length === 0) {
+        createDefault3x3Confirm();
+      }
+      confirmOriginalBoxes = JSON.parse(JSON.stringify(confirmBoxes));
+    }
+    
+    document.getElementById('confirm-box-count').textContent = confirmBoxes.length;
+    renderConfirmBatchTabs();
+    await imgLoadedPromise;
+    redrawConfirmCanvas();
+  }
+
+  function renderConfirmBatchTabs() {
+    const isLocalMode = (window.localFiles && window.localFiles.length > 0);
+    const itemsToProcess = isLocalMode ? window.localFiles : selectedFiles;
+    const totalItems = itemsToProcess.length;
+    const tabsWrap = document.getElementById('confirm-batch-tabs-wrap');
+    const tabsList = document.getElementById('confirm-batch-tabs-list');
+    
+    if (totalItems <= 50) {
+      if (tabsWrap) tabsWrap.style.display = 'none';
+      return;
+    }
+    
+    const totalBatches = Math.ceil(totalItems / BATCH_LIMIT);
+    const currentBatchNum = Math.floor(confirmImgIndex / BATCH_LIMIT) + 1;
+    if (tabsWrap) tabsWrap.style.display = 'block';
+    if (tabsList) {
+      tabsList.innerHTML = '';
+      for (let b = 1; b <= totalBatches; b++) {
+        const start = (b - 1) * BATCH_LIMIT + 1;
+        const end = Math.min(b * BATCH_LIMIT, totalItems);
+        const btn = document.createElement('button');
+        const isActive = (currentBatchNum === b);
+        btn.className = `batch-tab-btn ${isActive ? 'active' : ''}`;
+        btn.style.padding = '4px 10px';
+        btn.style.fontSize = '0.78rem';
+        btn.innerHTML = `<span>Batch ${b} (${start} - ${end})</span>`;
+        btn.onclick = async (e) => {
+          e.preventDefault();
+          confirmImgIndex = (b - 1) * BATCH_LIMIT;
+          window.currentProcessIndex = (b - 1) * BATCH_LIMIT;
+          await loadConfirmImageAndBoxes();
+        };
+        tabsList.appendChild(btn);
+      }
+    }
+  }
+
+  function confirmPrevImg() {
+    if (confirmImgIndex > 0) {
+      confirmImgIndex--;
+      loadConfirmImageAndBoxes();
+    }
+  }
+
+  function confirmNextImg() {
+    const isLocalMode = (window.localFiles && window.localFiles.length > 0);
+    const itemsToProcess = isLocalMode ? window.localFiles : selectedFiles;
+    if (confirmImgIndex < itemsToProcess.length - 1) {
+      confirmImgIndex++;
+      loadConfirmImageAndBoxes();
+    }
+  }
+
+  function redrawConfirmCanvas() {
+    if (!confirmCtx || !confirmCanvas || !confirmImg) return;
+    confirmCtx.clearRect(0, 0, confirmCanvas.width, confirmCanvas.height);
+    confirmCtx.drawImage(confirmImg, 0, 0, confirmCanvas.width, confirmCanvas.height);
+
+    confirmBoxes.forEach((b, idx) => {
+      const bx = b.x * confirmCanvas.width;
+      const by = b.y * confirmCanvas.height;
+      const bw = b.w * confirmCanvas.width;
+      const bh = b.h * confirmCanvas.height;
+
+      const isSelected = (idx === selectedConfirmBoxIdx);
+
+      // Fill & Stroke
+      confirmCtx.fillStyle = isSelected ? 'rgba(168, 85, 247, 0.3)' : 'rgba(34, 211, 166, 0.22)';
+      confirmCtx.fillRect(bx, by, bw, bh);
+
+      confirmCtx.strokeStyle = isSelected ? '#a855f7' : '#22d3a6';
+      confirmCtx.lineWidth = isSelected ? 4 : 2.5;
+      confirmCtx.strokeRect(bx, by, bw, bh);
+
+      // Label kotak (_a, _b, _c ...)
+      const label = idx < 26 ? `_${String.fromCharCode(97 + idx)}` : `_${idx + 1}`;
+      confirmCtx.fillStyle = isSelected ? '#ffffff' : '#22d3a6';
+      confirmCtx.font = `bold ${Math.max(14, Math.round(confirmCanvas.width * 0.02))}px sans-serif`;
+      confirmCtx.fillText(label, bx + 6, by + 22);
+
+      // Handle resize di sudut jika kotak sedang aktif
+      if (isSelected) {
+        const hs = Math.max(14, Math.round(confirmCanvas.width * 0.016));
+        confirmCtx.fillStyle = '#a855f7';
+        confirmCtx.fillRect(bx - hs/2, by - hs/2, hs, hs);
+        confirmCtx.fillRect(bx + bw - hs/2, by - hs/2, hs, hs);
+        confirmCtx.fillRect(bx - hs/2, by + bh - hs/2, hs, hs);
+        confirmCtx.fillRect(bx + bw - hs/2, by + bh - hs/2, hs, hs);
+      }
+    });
+  }
+
+  function setupConfirmCanvasEvents() {
+    confirmCanvas.onmousedown = (e) => {
+      const rect = confirmCanvas.getBoundingClientRect();
+      const scaleX = confirmCanvas.width / rect.width;
+      const scaleY = confirmCanvas.height / rect.height;
+      const mx = (e.clientX - rect.left) * scaleX;
+      const my = (e.clientY - rect.top) * scaleY;
+
+      // Cek handle resize kotak aktif
+      if (selectedConfirmBoxIdx >= 0 && selectedConfirmBoxIdx < confirmBoxes.length) {
+        const b = confirmBoxes[selectedConfirmBoxIdx];
+        const bx = b.x * confirmCanvas.width, by = b.y * confirmCanvas.height;
+        const bw = b.w * confirmCanvas.width, bh = b.h * confirmCanvas.height;
+        const hs = Math.max(20, Math.round(confirmCanvas.width * 0.025));
+
+        if (mx > bx-hs && mx < bx+hs && my > by-hs && my < by+hs) {
+          confirmDrag = { type: 'tl', idx: selectedConfirmBoxIdx, bx, by, bw, bh, mx, my }; return;
+        } else if (mx > bx+bw-hs && mx < bx+bw+hs && my > by-hs && my < by+hs) {
+          confirmDrag = { type: 'tr', idx: selectedConfirmBoxIdx, bx, by, bw, bh, mx, my }; return;
+        } else if (mx > bx-hs && mx < bx+hs && my > by+bh-hs && my < by+bh+hs) {
+          confirmDrag = { type: 'bl', idx: selectedConfirmBoxIdx, bx, by, bw, bh, mx, my }; return;
+        } else if (mx > bx+bw-hs && mx < bx+bw+hs && my > by+bh-hs && my < by+bh+hs) {
+          confirmDrag = { type: 'br', idx: selectedConfirmBoxIdx, bx, by, bw, bh, mx, my }; return;
+        }
+      }
+
+      // Cek klik di dalam salah satu kotak
+      const hitIdx = confirmBoxes.findIndex(b => {
+        const bx = b.x * confirmCanvas.width, by = b.y * confirmCanvas.height;
+        const bw = b.w * confirmCanvas.width, bh = b.h * confirmCanvas.height;
+        return mx >= bx && mx <= bx + bw && my >= by && my <= by + bh;
+      });
+
+      if (hitIdx !== -1) {
+        selectedConfirmBoxIdx = hitIdx;
+        const b = confirmBoxes[hitIdx];
+        confirmDrag = {
+          type: 'move',
+          idx: hitIdx,
+          bx: b.x * confirmCanvas.width,
+          by: b.y * confirmCanvas.height,
+          bw: b.w * confirmCanvas.width,
+          bh: b.h * confirmCanvas.height,
+          mx, my
+        };
+        redrawConfirmCanvas();
+      }
+    };
+
+    confirmCanvas.onmousemove = (e) => {
+      if (!confirmDrag || confirmDrag.idx >= confirmBoxes.length) return;
+      const rect = confirmCanvas.getBoundingClientRect();
+      const scaleX = confirmCanvas.width / rect.width;
+      const scaleY = confirmCanvas.height / rect.height;
+      const mx = (e.clientX - rect.left) * scaleX;
+      const my = (e.clientY - rect.top) * scaleY;
+      const dx = mx - confirmDrag.mx;
+      const dy = my - confirmDrag.my;
+
+      const b = confirmBoxes[confirmDrag.idx];
+      let { bx, by, bw, bh } = confirmDrag;
+
+      if (confirmDrag.type === 'move') {
+        bx += dx; by += dy;
+      } else if (confirmDrag.type === 'tl') {
+        bx += dx; by += dy; bw -= dx; bh -= dy;
+      } else if (confirmDrag.type === 'tr') {
+        by += dy; bw += dx; bh -= dy;
+      } else if (confirmDrag.type === 'bl') {
+        bx += dx; bw -= dx; bh += dy;
+      } else if (confirmDrag.type === 'br') {
+        bw += dx; bh += dy;
+      }
+
+      if (bw > 20 && bh > 20) {
+        b.x = Math.max(0, Math.min(1 - (bw/confirmCanvas.width), bx / confirmCanvas.width));
+        b.y = Math.max(0, Math.min(1 - (bh/confirmCanvas.height), by / confirmCanvas.height));
+        b.w = Math.max(0.02, Math.min(1 - b.x, bw / confirmCanvas.width));
+        b.h = Math.max(0.02, Math.min(1 - b.y, bh / confirmCanvas.height));
+      }
+      redrawConfirmCanvas();
+    };
+
+    confirmCanvas.onmouseup = () => { confirmDrag = null; };
+    confirmCanvas.onmouseleave = () => { confirmDrag = null; };
+  }
+
+  function shiftAllConfirmBoxes(dirX, dirY) {
+    if (confirmBoxes.length === 0 || !confirmCanvas) return;
+    const stepPx = parseInt(document.getElementById('confirm-step').value) || 5;
+    const dx = (dirX * stepPx) / confirmCanvas.width;
+    const dy = (dirY * stepPx) / confirmCanvas.height;
+
+    confirmBoxes.forEach(b => {
+      b.x = Math.max(0, Math.min(1 - b.w, b.x + dx));
+      b.y = Math.max(0, Math.min(1 - b.h, b.y + dy));
+    });
+    redrawConfirmCanvas();
+  }
+
+  function scaleAllConfirmBoxes(factor) {
+    if (confirmBoxes.length === 0 || !confirmCanvas) return;
+    confirmBoxes.forEach(b => {
+      const nw = Math.max(0.02, Math.min(1, b.w * factor));
+      const nh = Math.max(0.02, Math.min(1, b.h * factor));
+      b.x = Math.max(0, Math.min(1 - nw, b.x - (nw - b.w) / 2));
+      b.y = Math.max(0, Math.min(1 - nh, b.y - (nh - b.h) / 2));
+      b.w = nw;
+      b.h = nh;
+    });
+    redrawConfirmCanvas();
+  }
+
+  function changeConfirmZoom(val) {
+    if (!confirmCanvas) return;
+    if (val === 'fit') {
+      confirmCanvas.style.maxWidth = '1100px';
+      confirmCanvas.style.width = '100%';
+    } else if (val === 'large') {
+      confirmCanvas.style.maxWidth = '1450px';
+      confirmCanvas.style.width = '100%';
+    } else if (val === 'xlarge') {
+      confirmCanvas.style.maxWidth = '1800px';
+      confirmCanvas.style.width = '100%';
+    } else if (val === 'original') {
+      confirmCanvas.style.maxWidth = 'none';
+      confirmCanvas.style.width = (confirmCanvas.width) + 'px';
+    } else if (val === 'compact') {
+      confirmCanvas.style.maxWidth = '850px';
+      confirmCanvas.style.width = '100%';
+    }
+  }
+
+  function createDefault3x3Confirm() {
+    confirmBoxes = [];
+    const rows = 3, cols = 3;
+    const boxW = 0.23, boxH = 0.16;
+    const startX = 0.14, startY = 0.28;
+    const gapX = 0.05, gapY = 0.05;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        confirmBoxes.push({
+          x: startX + c * (boxW + gapX),
+          y: startY + r * (boxH + gapY),
+          w: boxW,
+          h: boxH
+        });
+      }
+    }
+    document.getElementById('confirm-box-count').textContent = confirmBoxes.length;
+    redrawConfirmCanvas();
+  }
+
+  function resetConfirmBoxes() {
+    confirmBoxes = JSON.parse(JSON.stringify(confirmOriginalBoxes));
+    selectedConfirmBoxIdx = 0;
+    document.getElementById('confirm-box-count').textContent = confirmBoxes.length;
+    redrawConfirmCanvas();
+  }
+
+  function accAndStartCrop() {
+    if (confirmBoxes.length === 0) {
+      return alert('Tidak ada kotak yang ditandai.');
+    }
+    
+    // Simpan kotak yang sudah di-ACC sebagai manualBoxes aktif
+    manualBoxes = JSON.parse(JSON.stringify(confirmBoxes));
+    updateBoxCount();
+    closeConfirmModal();
+    
+    // Langsung jalankan proses crop
+    startCrop(true);
+  }
+
+  // --- BATCH TABS & RENDER RESULTS ---
+  window.activeBatchTab = 'latest'; // 'latest', batch_id (1, 2, ...), atau 'all'
+
+  function switchBatchTab(tabId) {
+    window.activeBatchTab = tabId;
+    renderResults({ total: (allResultFiles || []).filter(f => !f.is_debug).length, files: allResultFiles, uid: 'batch' }, false);
+  }
+
+  function renderBatchTabButtons(containerId, sortedBatchIds, batchMap, currentTab, totalAllDocs) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+
+    sortedBatchIds.forEach(bId => {
+      const bInfo = batchMap.get(bId);
+      const docCount = bInfo.files.filter(f => f.is_debug).length;
+      const btn = document.createElement('button');
+      const isActive = (currentTab === bId);
+      btn.className = `batch-tab-btn ${isActive ? 'active' : ''}`;
+      btn.innerHTML = `
+        <span>📦 ${bInfo.label}</span>
+        <span class="batch-tab-badge">${docCount} Dokumen</span>
+      `;
+      btn.onclick = (e) => {
+        e.preventDefault();
+        switchBatchTab(bId);
+      };
+      container.appendChild(btn);
+    });
+
+    if (sortedBatchIds.length > 1) {
+      const allBtn = document.createElement('button');
+      const isAllActive = (currentTab === 'all');
+      allBtn.className = `batch-tab-btn ${isAllActive ? 'active' : ''}`;
+      allBtn.innerHTML = `
+        <span>🌐 Tampilkan Semua</span>
+        <span class="batch-tab-badge">${totalAllDocs} Dokumen</span>
+      `;
+      allBtn.onclick = (e) => {
+        e.preventDefault();
+        switchBatchTab('all');
+      };
+      container.appendChild(allBtn);
+    }
+  }
+
+  function renderResults(data, shouldScroll = true) {
+    document.getElementById('result-card').style.display = 'block';
+
+    const rawFiles = (data.files && data.files.length > 0) ? data.files : (allResultFiles || []);
+    if (rawFiles.length === 0) return;
+    
+    // Kelompokkan file berdasarkan batch_id
+    const batchMap = new Map();
+    rawFiles.forEach(f => {
+      const bId = f.batch_id || 1;
+      const bLabel = f.batch_label || `Batch ${bId}`;
+      if (!batchMap.has(bId)) {
+        batchMap.set(bId, { id: bId, label: bLabel, files: [] });
+      }
+      batchMap.get(bId).files.push(f);
+    });
+
+    const sortedBatchIds = Array.from(batchMap.keys()).sort((a, b) => a - b);
+    const maxBatchId = sortedBatchIds.length > 0 ? sortedBatchIds[sortedBatchIds.length - 1] : 1;
+
+    // Jika tab adalah 'latest' atau tidak valid, arahkan ke batch terbaru yang baru saja selesai
+    let currentTab = window.activeBatchTab;
+    if (currentTab === 'latest' || (!batchMap.has(currentTab) && currentTab !== 'all')) {
+      currentTab = maxBatchId;
+      window.activeBatchTab = currentTab;
+    }
+
+    // Filter file yang akan ditampilkan sesuai tab aktif
+    let displayFiles = [];
+    let currentBatchLabel = '';
+    if (currentTab === 'all') {
+      displayFiles = rawFiles;
+      currentBatchLabel = `Semua Batch (${rawFiles.filter(f => f.is_debug).length} Dokumen)`;
+    } else {
+      const bData = batchMap.get(currentTab);
+      displayFiles = bData ? bData.files : rawFiles;
+      currentBatchLabel = bData ? bData.label : `Batch ${currentTab}`;
+    }
+
+    const cropFiles = displayFiles.filter(f => !f.is_debug);
+    const debugFiles = displayFiles.filter(f => f.is_debug);
+    const totalAllCrops = rawFiles.filter(f => !f.is_debug).length;
+    const totalAllDocs = rawFiles.filter(f => f.is_debug).length;
+
+    // 1. Render Tab di bawah tombol aksi (Tandai Manual, Mulai Crop, Preview)
+    const actionTabsWrap = document.getElementById('action-batch-tabs-wrap');
+    if (actionTabsWrap) {
+      if (sortedBatchIds.length > 0) {
+        actionTabsWrap.style.display = 'block';
+        renderBatchTabButtons('action-batch-tabs-list', sortedBatchIds, batchMap, currentTab, totalAllDocs);
+        const actionInfo = document.getElementById('action-active-batch-info');
+        if (actionInfo) actionInfo.textContent = currentTab === 'all' ? 'Menampilkan Semua Dokumen' : `Aktif: ${currentBatchLabel}`;
+      } else {
+        actionTabsWrap.style.display = 'none';
+      }
+    }
+
+    // 2. Render Tab di dalam kartu Hasil Crop
+    renderBatchTabButtons('batch-tabs-list', sortedBatchIds, batchMap, currentTab, totalAllDocs);
+
+    // Update Label & Header Informasi Tab
+    const tabBadge = document.getElementById('active-tab-title-badge');
+    if (tabBadge) tabBadge.textContent = currentTab === 'all' ? '🌐 Menampilkan Semua Dokumen' : `📦 Menampilkan: ${currentBatchLabel}`;
+    
+    const tabDesc = document.getElementById('active-tab-desc');
+    if (tabDesc) tabDesc.textContent = `Menampilkan ${debugFiles.length} dokumen (${cropFiles.length} sel potongan)`;
+
+    // Stats Bar
+    const statsRow = document.getElementById('stats-row');
+    statsRow.style.display = 'flex';
+    document.getElementById('stat-total').textContent = `${cropFiles.length} Sel ${currentTab !== 'all' && sortedBatchIds.length > 1 ? `(Total Semua: ${totalAllCrops})` : ''}`;
+    const statDocEl = document.getElementById('stat-tab-files');
+    if (statDocEl) statDocEl.textContent = `${debugFiles.length} Dokumen ${currentTab !== 'all' && sortedBatchIds.length > 1 ? `(Total: ${totalAllDocs})` : ''}`;
+    document.getElementById('stat-method').textContent = "PRESISI 1:1";
+    document.getElementById('btn-download').href = `/download/${data.uid || 'batch'}`;
+
+    // Section Titles
+    const debugTitle = document.getElementById('debug-section-title');
+    if (debugTitle) debugTitle.textContent = currentTab === 'all' ? `🖼️ Grid Deteksi Penanda (Semua Dokumen)` : `🖼️ Grid Deteksi Penanda (${currentBatchLabel})`;
+
+    const debugCountLabel = document.getElementById('debug-count-label');
+    if (debugCountLabel) debugCountLabel.textContent = `${debugFiles.length} file scan`;
+
+    const cropTitle = document.getElementById('crop-section-title');
+    if (cropTitle) cropTitle.textContent = currentTab === 'all' ? `📁 Hasil Potongan Sel Gambar (Semua Dokumen)` : `📁 Hasil Potongan Sel Gambar (${currentBatchLabel})`;
+
+    const cropCountLabel = document.getElementById('crop-count-label');
+    if (cropCountLabel) cropCountLabel.textContent = `${cropFiles.length} potongan sel`;
+
+    // Debug Images (preview grid penanda / file utuh)
+    const debugWrap = document.getElementById('debug-wrap');
+    const debugContainer = document.getElementById('debug-images-list');
+    debugContainer.innerHTML = '';
+    
+    if (debugFiles.length > 0) {
+      debugFiles.forEach(f => {
+        const div = document.createElement('div');
+        div.style.cssText = 'width:280px; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--surface); text-align:center; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 4px 12px rgba(0,0,0,0.2);';
+        
+        const escPath = (f.file_path || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const escName = (f.image_name || '').replace(/'/g, "\\'");
+        const escUrl = (f.url || '').replace(/'/g, "\\'");
+
+        div.innerHTML = `
+          <div>
+            <div style="width:100%; height:200px; background:#080811; display:flex; align-items:center; justify-content:center; overflow:hidden; border-bottom:1px solid var(--border);">
+              <img src="${f.url}" style="width:100%; height:100%; object-fit:contain; cursor:zoom-in; display:block;" onclick="openLightbox('${f.url}')" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\' viewBox=\\'0 0 200 200\\'><text x=\\'50%\\' y=\\'50%\\' fill=\\'%23666\\' text-anchor=\\'middle\\' dy=\\'.3em\\'>Gambar Tidak Tersedia</text></svg>'"/>
+            </div>
+            <p style="font-size:.78rem; color:var(--text); padding:8px 6px 2px 6px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${f.image_name}">
+              Grid: ${f.image_name}
+            </p>
+          </div>
+          <div style="padding:6px 10px 10px 10px;">
+            <button class="btn btn-outline btn-sm" style="width:100%; font-size:.78rem; border-color:var(--accent2); color:var(--accent2); font-weight:600; padding:6px 10px;" onclick="openAdjustModal('${escPath}', '${escName}', '${escUrl}')">
+              ✏️ Sesuaikan Kotak & Crop Ulang
+            </button>
+          </div>
+        `;
+        debugContainer.appendChild(div);
+      });
+      debugWrap.style.display = 'block';
+    } else {
+      debugWrap.style.display = 'none';
+    }
+
+    // Grid Hasil Crop Sel
+    const grid = document.getElementById('result-grid');
+    grid.innerHTML = '';
+    
+    cropFiles.forEach(f => {
+      const card = document.createElement('div');
+      card.className = 'cell-card';
+      const escPath = (f.file_path || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      const escName = (f.image_name || '').replace(/'/g, "\\'");
+      const escUrl = (f.url || '').replace(/'/g, "\\'");
+
+      card.innerHTML = `
+        <div onclick="openLightbox('${f.url}')">
+          <div style="width:100%; height:110px; background:#080811; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+            <img src="${f.url}" alt="${f.name}" style="width:100%; height:100%; object-fit:contain; display:block;" loading="lazy"/>
+          </div>
+          <p title="${f.image_name}">${f.name}</p>
+        </div>
+        <div style="padding: 0 4px 6px 4px;">
+          <button class="btn btn-outline btn-sm" style="font-size:.65rem; padding:3px 6px; width:100%; border-color:var(--border); color:var(--muted);" title="Perbaiki posisi kotak pada file asli" onclick="event.stopPropagation(); openAdjustModal('${escPath}', '${escName}', '${escUrl}')">
+            🛠️ Perbaiki
+          </button>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+    if (shouldScroll) {
+      document.getElementById('result-card').scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  function openLightbox(url) {
+    document.getElementById('lightbox-img').src = url;
+    document.getElementById('lightbox').classList.add('active');
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('active');
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+</script>
+</body>
+</html>
